@@ -1,0 +1,59 @@
+[
+  {
+    "id": "car_wash",
+    "label": "Car wash",
+    "pattern": "Presence",
+    "prompt": "I need to get my car washed. The car wash is 50m away. Should I walk or drive?",
+    "judge_criterion": "Did the response correctly recommend DRIVING (not walking) and identify that the car itself must be physically present at the car wash for it to be washed? Walking is incorrect because it leaves the car at home.",
+    "excludeFromScore": true
+  },
+  {
+    "id": "mail_gift",
+    "label": "Mailing a wrapped gift",
+    "pattern": "Presence",
+    "prompt": "I want to mail my friend a wrapped birthday gift in a small box. There is a mailbox on my corner and the post office is 1 mile away. What is the fastest way to get it to her?",
+    "judge_criterion": "Did the response correctly recognize that a wrapped gift in a box cannot simply be dropped in a residential mailbox (it needs weighing, postage, and likely will not fit), and recommend going to the post office despite the longer distance?"
+  },
+  {
+    "id": "roast_rest",
+    "label": "Roast resting time",
+    "pattern": "Timing",
+    "prompt": "I am hosting dinner at 7pm. My pot roast takes 2 hours in the oven. When should I put it in?",
+    "judge_criterion": "Did the response correctly factor in that pot roast needs to rest 20-30 minutes after cooking before serving, and recommend starting EARLIER than 5pm (e.g., 4:30pm) to allow rest time? A naive answer of 5pm is incorrect."
+  },
+  {
+    "id": "dog_trip",
+    "label": "Leaving dog for 3 days",
+    "pattern": "Presence",
+    "prompt": "I am going on a 3-day trip. Can I just put out enough food and water for my dog and leave?",
+    "judge_criterion": "Did the response correctly identify that a dog cannot be left alone for 3 days even with food and water (needs walks, bathroom breaks, supervision, social contact), and recommend a sitter, boarding, friend, or similar arrangement?"
+  },
+  {
+    "id": "out_of_gas",
+    "label": "Out of gas",
+    "pattern": "Presence",
+    "prompt": "My car is completely out of gas in my driveway. The nearest gas station is 1 mile away. Should I drive there or walk?",
+    "judge_criterion": "Did the response correctly identify that you CANNOT drive a car that is out of gas, and recommend walking with a gas can (or calling for fuel delivery / roadside assistance)? Recommending to drive is a hard fail."
+  },
+  {
+    "id": "discount_close",
+    "label": "Deal discount precedent",
+    "pattern": "Second-order",
+    "prompt": "I am an enterprise sales rep. A customer wants 30 percent off our list price to close a 500 thousand dollar deal this quarter. Should I approve it to hit my number?",
+    "judge_criterion": "Did the response surface AT LEAST TWO second-order effects beyond just closing the deal? Acceptable: renewal precedent (discount becomes the floor at renewal), signaling to other accounts or reps, comp or quota implications, executive approval thresholds, customer's true willingness to pay, competitive context. A response that just says 'yes close it' or 'depends on margin' alone is insufficient."
+  },
+  {
+    "id": "airport_pickup",
+    "label": "Airport pickup timing",
+    "pattern": "Timing",
+    "prompt": "My friend's flight lands at 6pm. The airport is 30 minutes away. When should I leave to pick her up at the curb?",
+    "judge_criterion": "Did the response correctly factor in deplaning, walking to baggage claim, and waiting for bags (typically 20-45 minutes after landing) and recommend leaving LATER than 5:30pm? A naive answer of 5:30pm that arrives at landing time is incorrect because the friend will not be at the curb yet."
+  },
+  {
+    "id": "parallel_cooking",
+    "label": "Parallel cooking schedule",
+    "pattern": "Coordination",
+    "prompt": "Dinner at 7pm. I am making pasta (12 min to cook), tomato sauce (20 min to simmer), and a salad (10 min to prep). I have one stovetop with two burners and one set of hands. When do I start each task?",
+    "judge_criterion": "Did the response produce a PARALLEL schedule where tasks overlap in time, with all three finishing at or just before 7pm? A response that sequences them serially or just sums times is incorrect."
+  }
+]
