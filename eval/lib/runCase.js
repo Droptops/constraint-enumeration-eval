@@ -127,4 +127,9 @@ async function generateStyleMatchedBaseline({ testCase, baselineAnswer }) {
 function normalizeAnswerResult(result, metadata = {}) {
   return {
     text: result.text,
- 
+    raw: result.raw,
+    stop_reason: result.stop_reason,
+    truncated: result.stop_reason === "max_tokens",
+    ...metadata
+  };
+}

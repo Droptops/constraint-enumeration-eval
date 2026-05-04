@@ -381,4 +381,19 @@ export async function runBatch({
     pairwise_gold_anchored_summary: pairwiseSummaries.gold_anchored,
     pairwise_gold_blind_summary: pairwiseSummaries.gold_blind,
     result_files: {
-      absolu
+      absolute_results_jsonl: relativeResultPath(absolutePath),
+      pairwise_gold_anchored_jsonl: relativeResultPath(pairwisePaths.gold_anchored),
+      pairwise_gold_blind_jsonl: relativeResultPath(pairwisePaths.gold_blind),
+      summary_json: relativeResultPath(summaryPath)
+    }
+  };
+
+  fs.writeFileSync(summaryPath, JSON.stringify(artifact, null, 2));
+
+  return {
+    artifact,
+    summaryPath,
+    absolutePath,
+    pairwisePaths
+  };
+}
