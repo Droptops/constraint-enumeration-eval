@@ -1,6 +1,6 @@
 {
   "name": "constraint-enumeration-eval",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,18 +11,25 @@
     "start": "next start",
     "smoke": "node scripts/copy-skill.js && node scripts/smoke-test.js",
     "lint": "next lint",
-    "check:esm": "! grep -r \"require(\" lib scripts pages",
+    "check:esm": "node scripts/check-esm.js",
     "prestart": "node scripts/copy-skill.js",
-    "rejudge": "node scripts/copy-skill.js && node scripts/rejudge-existing.js"
+    "rejudge": "node scripts/copy-skill.js && node scripts/rejudge-existing.js",
+    "check:models": "node scripts/check-model-access.js",
+    "check:cases": "node -e \"import('./lib/loadCases.js').then(m => console.log(m.loadAllCases().length))\"",
+    "test": "node --test test/*.test.js",
+    "ci": "npm run check:cases && npm run check:esm && npm test"
   },
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "zod": "latest"
+    "next": "16.2.4",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "zod": "4.4.2"
   },
   "devDependencies": {
-    "eslint": "latest",
-    "eslint-config-next": "latest"
+    "eslint": "10.3.0",
+    "eslint-config-next": "16.2.4"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

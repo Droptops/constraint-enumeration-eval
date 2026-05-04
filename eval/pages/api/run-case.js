@@ -1,9 +1,10 @@
 import { requireAuth } from "../../lib/auth.js";
 import { getAnswerModel, getAnswerTemperature, getEvalConditions, getJudgeModel, getJudgeTemperature } from "../../lib/config.js";
 import { loadCaseById } from "../../lib/loadCases.js";
-import { generateAnswer } from "../../lib/runCase.js";
+import { generateAnswerResult } from "../../lib/runCase.js";
 import { judgeAnswer } from "../../lib/judge.js";
 import { scoreJudgment } from "../../lib/score.js";
+import { textStats } from "../../lib/runBatch.js";
 
 export default async function handler(req, res) {
   try {
@@ -29,7 +30,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Unknown caseId" });
     }
 
-    const answer = await generateAnswer({ testCase, condition });
+    const answerResult = await generateAnswerResult({ testCase, condition });
+    const answer = answerResult.text;
     const judgment = await judgeAnswer({ testCase, answer });
     const score = scoreJudgment(judgment);
 
@@ -45,6 +47,9 @@ export default async function handler(req, res) {
       answer_temperature: getAnswerTemperature(),
       judge_temperature: getJudgeTemperature(),
       answer,
+      answer_stats: textStats(answer),
+      answer_stop_reason: answerResult.stop_reason,
+      answer_truncated: answerResult.truncated,
       judgment,
       score
     });

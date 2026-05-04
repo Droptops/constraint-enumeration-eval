@@ -118,7 +118,7 @@ export default function Home() {
           <select value={selectedCaseId} onChange={event => setSelectedCaseId(event.target.value)}>
             {cases.map(testCase => (
               <option key={testCase.id} value={testCase.id}>
-                {testCase.id} · {testCase.category}
+                {testCase.id} - {testCase.category}
               </option>
             ))}
           </select>
@@ -141,7 +141,7 @@ export default function Home() {
       )}
 
       {error && <section className="error">{error}</section>}
-      {loading && <section className="panel muted">Running…</section>}
+      {loading && <section className="panel muted">Running...</section>}
 
       <section className="grid two">
         <ResultCard title="Baseline" result={caseResults.baseline} />

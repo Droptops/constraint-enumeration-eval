@@ -1,3 +1,5 @@
+import { GATE_VARIANTS } from "./score.js";
+
 export function summarizeResults(results) {
   return {
     global: summarizeResultsGroup(results),
@@ -21,9 +23,12 @@ function summarizeResultsGroup(results) {
     conditions,
     baseline,
     skill,
-    careful_control: conditions.careful_control || undefined,
+    careful_control: conditions.careful_control || null,
     lift: computeLift(baseline, skill),
-    paired_analysis: summarizePairedBaselineSkill(results)
+    gate_sensitivity: summarizeGateSensitivity(results),
+    paired_analysis: summarizePairedBaselineSkill(results),
+    paired_skill_vs_careful_control:
+      conditions.careful_control ? summarizePairedSkillCarefulControl(results) : null
   };
 }
 
@@ -35,7 +40,7 @@ function summarizeCondition(results) {
       total: 0,
       pass_rate: null,
       constraint_failure_rate: null,
-      final_answer_accuracy: null,
+      final_answer_rate: null,
       implicit_constraint_consideration_rate: null,
       explicit_constraint_enumeration_rate: null,
       constraint_application_rate: null,
@@ -43,7 +48,10 @@ function summarizeCondition(results) {
       unnecessary_clarification_rate: null,
       over_enumeration_rate: null,
       ignored_relevant_soft_constraints_rate: null,
-      invalid_judge_response_rate: null
+      invalid_judge_response_rate: null,
+      answer_truncation_rate: null,
+      answer_length: null,
+      pass_rate_by_answer_length_quartile: null
     };
   }
 
@@ -53,7 +61,7 @@ function summarizeCondition(results) {
     total,
     pass_rate: count(r => r.score.pass) / total,
     constraint_failure_rate: count(r => r.score.constraint_failure) / total,
-    final_answer_accuracy: count(r => r.score.fields?.final_answer_correct === true) / total,
+    final_answer_rate: count(r => r.score.fields?.final_answer_correct === true) / total,
     implicit_constraint_consideration_rate:
       count(r => r.score.fields?.considers_binding_constraints_implicitly === true) / total,
     explicit_constraint_enumeration_rate:
@@ -65,7 +73,10 @@ function summarizeCondition(results) {
     over_enumeration_rate: count(r => r.score.fields?.over_enumerates_irrelevant_constraints === true) / total,
     ignored_relevant_soft_constraints_rate:
       count(r => r.score.fields?.ignored_relevant_soft_constraints === true) / total,
-    invalid_judge_response_rate: count(r => r.score.invalid_judge_response === true) / total
+    invalid_judge_response_rate: count(r => r.score.invalid_judge_response === true) / total,
+    answer_truncation_rate: count(r => r.answer_truncated === true) / total,
+    answer_length: summarizeAnswerLength(results),
+    pass_rate_by_answer_length_quartile: summarizePassRateByLengthQuartile(results)
   };
 }
 
@@ -88,77 +99,183 @@ function computeLift(baseline, skill) {
   };
 }
 
-function summarizePairedBaselineSkill(results) {
-  const pairs = buildBaselineSkillPairs(results);
+function summarizeGateSensitivity(results) {
+  const variants = Object.keys(GATE_VARIANTS);
+  const byCondition = groupBy(results, result => result.condition);
+
+  const conditionSummaries = Object.fromEntries(
+    Object.entries(byCondition)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([condition, conditionResults]) => {
+        const total = conditionResults.length;
+        return [
+          condition,
+          Object.fromEntries(
+            variants.map(variant => [
+              variant,
+              total === 0
+                ? null
+                : conditionResults.filter(result => result.score.gate_variants?.[variant] === true).length / total
+            ])
+          )
+        ];
+      })
+  );
 
   return {
-    pairs: pairs.length,
-    pass: summarizePairedBinary(
-      pairs,
-      pair => pair.baseline.score.pass === true,
-      pair => pair.skill.score.pass === true,
-      "skill_minus_baseline"
-    ),
-    constraint_failure_reduction: summarizePairedBinary(
-      pairs,
-      pair => pair.baseline.score.constraint_failure === true,
-      pair => pair.skill.score.constraint_failure === true,
-      "baseline_minus_skill"
-    )
+    note: "Sensitivity table for alternate pass gates. Default pass uses v31_decision_quality_default, which drops the subjective implicit-consideration gate.",
+    conditions: conditionSummaries,
+    skill_minus_baseline: summarizeVariantDeltas(results, "baseline", "skill"),
+    skill_minus_careful_control: summarizeVariantDeltas(results, "careful_control", "skill")
   };
 }
 
-function buildBaselineSkillPairs(results) {
-  const byKey = groupBy(results.filter(r => ["baseline", "skill"].includes(r.condition)), r => `${r.caseId}:${r.trial}`);
+function summarizeVariantDeltas(results, leftCondition, rightCondition) {
+  const pairs = buildConditionPairs(results, leftCondition, rightCondition);
+  if (pairs.length === 0) return null;
+
+  return Object.fromEntries(
+    Object.keys(GATE_VARIANTS).map(variant => {
+      const leftRate = mean(pairs.map(pair => (pair.left.score.gate_variants?.[variant] === true ? 1 : 0)));
+      const rightRate = mean(pairs.map(pair => (pair.right.score.gate_variants?.[variant] === true ? 1 : 0)));
+      return [variant, rightRate - leftRate];
+    })
+  );
+}
+
+function summarizePairedBaselineSkill(results) {
+  const pairs = buildConditionPairs(results, "baseline", "skill");
+
+  return {
+    pairs: pairs.length,
+    pass: summarizePairedBinary({
+      pairs,
+      leftFn: pair => pair.left.score.pass === true,
+      rightFn: pair => pair.right.score.pass === true,
+      deltaDirection: "skill_minus_baseline",
+      subtract: "right_minus_left",
+      positiveDeltaMeaning: "Skill has a higher pass rate than baseline."
+    }),
+    constraint_failure_reduction: summarizePairedBinary({
+      pairs,
+      leftFn: pair => pair.left.score.constraint_failure === true,
+      rightFn: pair => pair.right.score.constraint_failure === true,
+      deltaDirection: "baseline_minus_skill",
+      subtract: "left_minus_right",
+      positiveDeltaMeaning: "Skill has a lower constraint-failure rate than baseline."
+    })
+  };
+}
+
+function summarizePairedSkillCarefulControl(results) {
+  const pairs = buildConditionPairs(results, "careful_control", "skill");
+
+  return {
+    pairs: pairs.length,
+    pass: summarizePairedBinary({
+      pairs,
+      leftFn: pair => pair.left.score.pass === true,
+      rightFn: pair => pair.right.score.pass === true,
+      deltaDirection: "skill_minus_careful_control",
+      subtract: "right_minus_left",
+      positiveDeltaMeaning: "Skill has a higher pass rate than careful_control."
+    }),
+    constraint_failure_reduction: summarizePairedBinary({
+      pairs,
+      leftFn: pair => pair.left.score.constraint_failure === true,
+      rightFn: pair => pair.right.score.constraint_failure === true,
+      deltaDirection: "careful_control_minus_skill",
+      subtract: "left_minus_right",
+      positiveDeltaMeaning: "Skill has a lower constraint-failure rate than careful_control."
+    }),
+    constraint_application: summarizePairedBinary({
+      pairs,
+      leftFn: pair => pair.left.score.fields?.applies_constraints_correctly === true,
+      rightFn: pair => pair.right.score.fields?.applies_constraints_correctly === true,
+      deltaDirection: "skill_minus_careful_control",
+      subtract: "right_minus_left",
+      positiveDeltaMeaning: "Skill has a higher constraint-application rate than careful_control."
+    })
+  };
+}
+
+function buildConditionPairs(results, leftCondition, rightCondition) {
+  const byKey = groupBy(
+    results.filter(r => [leftCondition, rightCondition].includes(r.condition)),
+    r => `${r.caseId}:${r.trial}`
+  );
   const pairs = [];
 
   for (const group of Object.values(byKey)) {
-    const baseline = group.find(r => r.condition === "baseline");
-    const skill = group.find(r => r.condition === "skill");
-    if (baseline && skill) pairs.push({ baseline, skill });
+    const left = group.find(r => r.condition === leftCondition);
+    const right = group.find(r => r.condition === rightCondition);
+    if (left && right) pairs.push({ left, right, leftCondition, rightCondition });
   }
 
   return pairs;
 }
 
-function summarizePairedBinary(pairs, baselineFn, skillFn, deltaDirection) {
+export function summarizePairedBinary({
+  pairs,
+  leftFn,
+  rightFn,
+  deltaDirection,
+  subtract,
+  positiveDeltaMeaning
+}) {
   const n = pairs.length;
+  const leftCondition = pairs[0]?.leftCondition || null;
+  const rightCondition = pairs[0]?.rightCondition || null;
+
+  if (!["left_minus_right", "right_minus_left"].includes(subtract)) {
+    throw new Error(`Invalid paired subtraction mode: ${subtract}`);
+  }
 
   if (n === 0) {
     return {
       n_pairs: 0,
-      baseline_rate: null,
-      skill_rate: null,
+      left_condition: leftCondition,
+      right_condition: rightCondition,
+      left_rate: null,
+      right_rate: null,
       mean_delta: null,
-      ci95_normal: null,
+      ci95_bootstrap: null,
+      ci95_normal_diagnostic: null,
       mcnemar: null,
-      delta_direction: deltaDirection
+      delta_direction: deltaDirection,
+      subtract,
+      positive_delta_meaning: positiveDeltaMeaning
     };
   }
 
-  const baselineValues = pairs.map(pair => (baselineFn(pair) ? 1 : 0));
-  const skillValues = pairs.map(pair => (skillFn(pair) ? 1 : 0));
+  const leftValues = pairs.map(pair => (leftFn(pair) ? 1 : 0));
+  const rightValues = pairs.map(pair => (rightFn(pair) ? 1 : 0));
 
-  const baselineRate = mean(baselineValues);
-  const skillRate = mean(skillValues);
+  const leftRate = mean(leftValues);
+  const rightRate = mean(rightValues);
   const deltas = pairs.map((_, i) =>
-    deltaDirection === "baseline_minus_skill"
-      ? baselineValues[i] - skillValues[i]
-      : skillValues[i] - baselineValues[i]
+    subtract === "left_minus_right"
+      ? leftValues[i] - rightValues[i]
+      : rightValues[i] - leftValues[i]
   );
 
   return {
     n_pairs: n,
-    baseline_rate: baselineRate,
-    skill_rate: skillRate,
+    left_condition: leftCondition,
+    right_condition: rightCondition,
+    left_rate: leftRate,
+    right_rate: rightRate,
     mean_delta: mean(deltas),
-    ci95_normal: normalCi95(deltas),
-    mcnemar: mcnemar(baselineValues, skillValues),
-    delta_direction: deltaDirection
+    ci95_bootstrap: bootstrapCi95(deltas),
+    ci95_normal_diagnostic: normalCi95(deltas),
+    mcnemar: mcnemar(leftValues, rightValues, leftCondition, rightCondition),
+    delta_direction: deltaDirection,
+    subtract,
+    positive_delta_meaning: positiveDeltaMeaning
   };
 }
 
-function normalCi95(values) {
+export function normalCi95(values) {
   if (values.length < 2) return null;
   const m = mean(values);
   const variance = values.reduce((sum, value) => sum + (value - m) ** 2, 0) / (values.length - 1);
@@ -169,40 +286,67 @@ function normalCi95(values) {
   };
 }
 
-function mcnemar(baselineValues, skillValues) {
-  let baselineFailSkillPass = 0;
-  let baselinePassSkillFail = 0;
+export function bootstrapCi95(values, iterations = 2000) {
+  if (values.length < 2) return null;
 
-  for (let i = 0; i < baselineValues.length; i++) {
-    if (baselineValues[i] === 0 && skillValues[i] === 1) baselineFailSkillPass++;
-    if (baselineValues[i] === 1 && skillValues[i] === 0) baselinePassSkillFail++;
+  const estimates = [];
+  const rand = deterministicRandom("bootstrap-ci95");
+
+  for (let i = 0; i < iterations; i++) {
+    let sum = 0;
+    for (let j = 0; j < values.length; j++) {
+      sum += values[Math.floor(rand() * values.length)];
+    }
+    estimates.push(sum / values.length);
   }
 
-  const discordant = baselineFailSkillPass + baselinePassSkillFail;
+  estimates.sort((a, b) => a - b);
+
+  return {
+    lower: quantileSorted(estimates, 0.025),
+    upper: quantileSorted(estimates, 0.975),
+    iterations
+  };
+}
+
+export function mcnemar(leftValues, rightValues, leftCondition, rightCondition) {
+  let leftZeroRightOne = 0;
+  let leftOneRightZero = 0;
+
+  for (let i = 0; i < leftValues.length; i++) {
+    if (leftValues[i] === 0 && rightValues[i] === 1) leftZeroRightOne++;
+    if (leftValues[i] === 1 && rightValues[i] === 0) leftOneRightZero++;
+  }
+
+  const discordant = leftZeroRightOne + leftOneRightZero;
 
   if (discordant === 0) {
     return {
-      baseline_fail_skill_pass: baselineFailSkillPass,
-      baseline_pass_skill_fail: baselinePassSkillFail,
+      left_condition: leftCondition,
+      right_condition: rightCondition,
+      left_zero_right_one: leftZeroRightOne,
+      left_one_right_zero: leftOneRightZero,
       discordant_pairs: 0,
       chi_square_continuity_corrected: null,
       approximate_p_value: null
     };
   }
 
-  const chiSquare = ((Math.abs(baselineFailSkillPass - baselinePassSkillFail) - 1) ** 2) / discordant;
+  const chiSquare = ((Math.abs(leftZeroRightOne - leftOneRightZero) - 1) ** 2) / discordant;
 
   return {
-    baseline_fail_skill_pass: baselineFailSkillPass,
-    baseline_pass_skill_fail: baselinePassSkillFail,
+    left_condition: leftCondition,
+    right_condition: rightCondition,
+    left_zero_right_one: leftZeroRightOne,
+    left_one_right_zero: leftOneRightZero,
     discordant_pairs: discordant,
     chi_square_continuity_corrected: chiSquare,
     approximate_p_value: erfc(Math.sqrt(chiSquare / 2))
   };
 }
 
-function erfc(x) {
-  // Abramowitz and Stegun approximation. Good enough for reporting an approximate McNemar p-value.
+export function erfc(x) {
+  // Abramowitz and Stegun approximation; covered by unit tests against known chi-square survival values.
   const z = Math.abs(x);
   const t = 1 / (1 + z / 2);
   const r = t * Math.exp(
@@ -222,7 +366,7 @@ function erfc(x) {
   return x >= 0 ? r : 2 - r;
 }
 
-function marginWeight(margin) {
+export function marginWeight(margin) {
   switch (margin) {
     case "large":
       return 1.0;
@@ -233,7 +377,7 @@ function marginWeight(margin) {
     case "tie":
       return 0;
     default:
-      return 0;
+      throw new Error(`Invalid pairwise margin: ${margin}`);
   }
 }
 
@@ -282,6 +426,7 @@ function summarizePairwiseGroup(pairwiseResults) {
     baseline_win_rate: validCount(r => r.winner_condition === "baseline") / validTotal,
     tie_rate: validCount(r => r.winner_condition === "tie") / validTotal,
     invalid_pairwise_rate: count(r => r.pairwise?.valid_pairwise_response !== true) / total,
+    margin_weighted_metrics_note: "Diagnostic only; large=1.0, medium=0.66, small=0.33, tie=0 are uncalibrated convenience weights. Use win/loss/tie rates for headline claims.",
     skill_margin_weighted_score: skillWeighted / validTotal,
     baseline_margin_weighted_score: baselineWeighted / validTotal,
     net_margin_weighted_skill_advantage: (skillWeighted - baselineWeighted) / validTotal,
@@ -352,6 +497,7 @@ function emptyPairwiseSummary(total, validTotal, invalidRate) {
     baseline_win_rate: null,
     tie_rate: null,
     invalid_pairwise_rate: invalidRate,
+    margin_weighted_metrics_note: "Diagnostic only; use win/loss/tie rates for headline claims.",
     skill_margin_weighted_score: null,
     baseline_margin_weighted_score: null,
     net_margin_weighted_skill_advantage: null,
@@ -388,18 +534,96 @@ function behaviorPolicyKey(result) {
     return "either_acceptable";
   }
 
-  return "unspecified";
+  throw new Error("Invalid behavior policy: requires_direct_answer and clarification_expected must be booleans.");
 }
 
-function groupBy(items, keyFn) {
+export function groupBy(items, keyFn) {
   return items.reduce((acc, item) => {
-    const key = keyFn(item);
-    acc[key] ||= [];
+    const key = String(keyFn(item));
+    if (!Object.hasOwn(acc, key)) acc[key] = [];
     acc[key].push(item);
     return acc;
-  }, {});
+  }, Object.create(null));
 }
 
 function mean(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function summarizeAnswerLength(results) {
+  const stats = results
+    .map(result => result.answer_stats)
+    .filter(Boolean);
+
+  if (stats.length === 0) return null;
+
+  const characters = stats.map(stat => stat.characters || 0);
+  const words = stats.map(stat => stat.approximate_words || 0);
+  const tokens = stats.map(stat => stat.approximate_tokens || 0);
+
+  return {
+    mean_characters: mean(characters),
+    p50_characters: quantile(characters, 0.5),
+    p90_characters: quantile(characters, 0.9),
+    mean_approximate_words: mean(words),
+    p50_approximate_words: quantile(words, 0.5),
+    p90_approximate_words: quantile(words, 0.9),
+    mean_approximate_tokens: mean(tokens),
+    p50_approximate_tokens: quantile(tokens, 0.5),
+    p90_approximate_tokens: quantile(tokens, 0.9)
+  };
+}
+
+function summarizePassRateByLengthQuartile(results) {
+  const withTokens = results
+    .filter(result => result.answer_stats?.approximate_tokens !== undefined)
+    .map(result => ({ result, tokens: result.answer_stats.approximate_tokens }))
+    .sort((a, b) => a.tokens - b.tokens);
+
+  if (withTokens.length === 0) return null;
+
+  return [0, 1, 2, 3].map(quartileIndex => {
+    const start = Math.floor((quartileIndex * withTokens.length) / 4);
+    const end = Math.floor(((quartileIndex + 1) * withTokens.length) / 4);
+    const bucket = withTokens.slice(start, Math.max(end, start + 1));
+    return {
+      quartile: quartileIndex + 1,
+      n: bucket.length,
+      min_approximate_tokens: bucket[0]?.tokens ?? null,
+      max_approximate_tokens: bucket[bucket.length - 1]?.tokens ?? null,
+      pass_rate: bucket.filter(item => item.result.score.pass === true).length / bucket.length
+    };
+  });
+}
+
+function quantile(values, q) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return quantileSorted(sorted, q);
+}
+
+function quantileSorted(sorted, q) {
+  if (sorted.length === 0) return null;
+  const index = (sorted.length - 1) * q;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower];
+  const weight = index - lower;
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
+function deterministicRandom(seed) {
+  let state = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    state ^= seed.charCodeAt(i);
+    state = Math.imul(state, 16777619);
+  }
+
+  return () => {
+    state += 0x6d2b79f5;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }

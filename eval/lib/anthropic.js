@@ -1,5 +1,12 @@
-import { DEFAULT_RETRYABLE_STATUS_CODES, exponentialBackoffMs, parseRetryAfterMs, sleep } from "./retry.js";
-import { maybeAddTemperature, shouldOmitAnthropicSamplingParams } from "./sampling.js";
+import {
+  ApiHttpError,
+  DEFAULT_RETRYABLE_STATUS_CODES,
+  exponentialBackoffMs,
+  parseRetryAfterMs,
+  shouldRetryTransportError,
+  sleep
+} from "./retry.js";
+import { maybeAddTemperature } from "./sampling.js";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -24,11 +31,14 @@ export async function callClaude({
     throw new Error("messages must be a non-empty array");
   }
 
-  const body = maybeAddTemperature({
-    model,
-    max_tokens: maxTokens,
-    messages
-  }, { model, temperature });
+  const body = maybeAddTemperature(
+    {
+      model,
+      max_tokens: maxTokens,
+      messages
+    },
+    { provider: "anthropic", model, temperature }
+  );
 
   if (system) body.system = system;
   if (outputConfig) body.output_config = outputConfig;
@@ -61,21 +71,24 @@ export async function callClaude({
       const retryable = DEFAULT_RETRYABLE_STATUS_CODES.has(response.status);
 
       if (!retryable || attempt === maxRetries) {
-        throw new Error(`Anthropic error ${response.status}: ${errorText}`);
+        throw new ApiHttpError({
+          provider: "Anthropic",
+          status: response.status,
+          body: errorText,
+          retryable
+        });
       }
 
       const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"));
-      const backoffMs = retryAfterMs ?? exponentialBackoffMs(attempt);
-      await sleep(backoffMs);
+      await sleep(retryAfterMs ?? exponentialBackoffMs(attempt));
     } catch (error) {
       lastError = error;
 
-      if (attempt === maxRetries) {
+      if (attempt === maxRetries || !shouldRetryTransportError(error)) {
         throw error;
       }
 
-      const backoffMs = exponentialBackoffMs(attempt);
-      await sleep(backoffMs);
+      await sleep(exponentialBackoffMs(attempt));
     }
   }
 

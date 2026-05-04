@@ -1,0 +1,166 @@
+[
+  {
+    "schema_version": "1.1",
+    "id": "ambiguity_1_data_interpretation",
+    "category": "ambiguity",
+    "prompt": "The dashboard sensor just spiked in temperature for one reading, but the system logs say everything is normal. Should I create an incident ticket?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Clarify the spike magnitude, threshold, sensor reliability, and whether repeated readings confirm the issue",
+    "acceptable_final_answers": [
+      "Clarify the magnitude of the spike and the defined normal parameters or alert thresholds",
+      "Check whether the spike was repeated, above threshold, or likely caused by a sensor issue before creating an incident ticket"
+    ],
+    "observed_facts": [
+      "Single temperature spike in dashboard sensor",
+      "Logs indicate normal parameters"
+    ],
+    "hard_constraints": [
+      "Do not create an incident based on contradictory data without context"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Contradictory information requires resolving the discrepancy before action"
+    ],
+    "prohibited_failure_modes": [
+      "Creating an incident ticket immediately without checking threshold or confirmation",
+      "Ignoring the sensor entirely"
+    ],
+    "not_acceptable_final_answers": [
+      "Create the incident ticket right away",
+      "Ignore the sensor"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "ambiguity_2_user_intent",
+    "category": "ambiguity",
+    "prompt": "The app feels slow after the latest update. What should the team fix first?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Clarify what specific aspect feels slow and where users experience it",
+    "acceptable_final_answers": [
+      "Clarify whether the slowness is load time, responsiveness, backend latency, device-specific, or browser-specific",
+      "Ask for performance metrics and reproduction details before choosing what to fix"
+    ],
+    "observed_facts": [
+      "App feels slow after latest update"
+    ],
+    "hard_constraints": [
+      "Optimization must target the actual user pain point"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "'Slow' is ambiguous without metric or reproduction steps"
+    ],
+    "prohibited_failure_modes": [
+      "Assuming latency without asking",
+      "Focusing only on backend performance without evidence"
+    ],
+    "not_acceptable_final_answers": [
+      "Assume it's latency and optimize that",
+      "Focus only on backend speed"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "ambiguity_3_resource_availability",
+    "category": "ambiguity",
+    "prompt": "We need to launch the new feature by Friday but testing servers are down.",
+    "expected_behavior": "direct_or_clarify_with_assumptions",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Determine the expected restoration time for the testing environment and the impact on the launch deadline",
+    "acceptable_final_answers": [
+      "Clarify the status of the testing environment and the dependency timeline for its restoration",
+      "Identify whether an alternate testing path exists before committing to the Friday launch"
+    ],
+    "observed_facts": [
+      "Launch deadline Friday",
+      "Testing environment unavailable"
+    ],
+    "hard_constraints": [
+      "Cannot ignore testing dependency"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Blocker status and timeline are unknown"
+    ],
+    "prohibited_failure_modes": [
+      "Proceeding with deployment assuming environment will be ready"
+    ],
+    "not_acceptable_final_answers": [
+      "Deploy anyway and test later",
+      "Assume it will be fixed by Friday"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "ambiguity_water_ration_priority",
+    "category": "ambiguity",
+    "prompt": "We have only one water ration left for our group of four. Who gets it?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Ask details on each person's medical condition, dehydration level, and critical tasks",
+    "acceptable_final_answers": [
+      "Clarify each person's condition and immediate survival role before deciding",
+      "Ask who is most medically vulnerable, dehydrated, injured, or needed for urgent safety-critical tasks"
+    ],
+    "observed_facts": [
+      "One water ration left",
+      "Group of four people"
+    ],
+    "hard_constraints": [
+      "Allocation cannot be random or based on status alone"
+    ],
+    "soft_preferences": [
+      "Use medical or survival need as the primary criterion"
+    ],
+    "required_inference": [
+      "No information provided on individual needs"
+    ],
+    "prohibited_failure_modes": [
+      "Allocating randomly",
+      "Giving to the leader or strongest"
+    ],
+    "not_acceptable_final_answers": [
+      "Give it to the strongest person",
+      "Flip a coin for it"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "ambiguity_5_stakeholder_conflict",
+    "category": "ambiguity",
+    "prompt": "Engineering wants to delay launch to fix bugs but sales wants to ship now. How do I decide?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Clarify bug severity, customer impact, launch commitments, and business consequences of delay versus launch",
+    "acceptable_final_answers": [
+      "Clarify the severity of the bugs and the acceptable delay timeline for the sales team",
+      "Compare customer risk from bugs against business risk from delay before deciding"
+    ],
+    "observed_facts": [
+      "Engineering requests delay for bugs",
+      "Sales insists on immediate launch"
+    ],
+    "hard_constraints": [
+      "Decision needs data on risks of both options"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Missing information on bug criticality and business priorities"
+    ],
+    "prohibited_failure_modes": [
+      "Side with one team without details"
+    ],
+    "not_acceptable_final_answers": [
+      "Launch now to make sales happy",
+      "Delay for quality without assessing impact"
+    ]
+  }
+]

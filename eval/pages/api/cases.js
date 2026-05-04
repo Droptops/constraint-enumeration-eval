@@ -10,6 +10,7 @@ export default function handler(req, res) {
       id: testCase.id,
       category: testCase.category,
       prompt: testCase.prompt,
+      expected_behavior: testCase.expected_behavior,
       source_file: testCase.source_file
     }));
 

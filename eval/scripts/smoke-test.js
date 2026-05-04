@@ -2,8 +2,9 @@ import path from "path";
 
 import { loadAllCases } from "../lib/loadCases.js";
 import { runBatch, selectDiverseCases } from "../lib/runBatch.js";
+import { makeTimestampRunId, validateRunId } from "../lib/runId.js";
 
-const runId = process.env.RUN_ID || `smoke-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+const runId = validateRunId(process.env.RUN_ID || makeTimestampRunId("smoke"));
 const trials = Number.parseInt(process.env.SMOKE_TRIALS || "1", 10);
 const maxCases = Number.parseInt(process.env.SMOKE_CASES || "4", 10);
 

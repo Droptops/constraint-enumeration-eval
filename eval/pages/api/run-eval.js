@@ -3,6 +3,7 @@ import path from "path";
 import { requireAuth } from "../../lib/auth.js";
 import { loadAllCases } from "../../lib/loadCases.js";
 import { runBatch } from "../../lib/runBatch.js";
+import { makeTimestampRunId, validateRunId } from "../../lib/runId.js";
 
 export default async function handler(req, res) {
   try {
@@ -18,7 +19,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "trials must be between 1 and 20" });
     }
 
-    const runId = req.body?.runId || new Date().toISOString().replace(/[:.]/g, "-");
+    let runId;
+    try {
+      runId = validateRunId(req.body?.runId || makeTimestampRunId());
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
     const cases = loadAllCases();
 
     const { artifact } = await runBatch({

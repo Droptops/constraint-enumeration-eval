@@ -48,20 +48,22 @@ export function loadCompletedResults(jsonlPath, keyFn) {
   };
 }
 
-export function assertResumeHashes(records, { skill_sha256, cases_sha256, fileLabel }) {
+export function assertResumeHashes(records, { skill_sha256, cases_sha256, run_config_sha256, fileLabel }) {
   for (const record of records) {
     // Legacy records without per-result hashes are tolerated so old smoke files do not crash resume.
-    // Publishable runs should start with a fresh RUN_ID after this field exists.
-    if (record.skill_sha256 && record.skill_sha256 !== skill_sha256) {
-      throw new Error(
-        `${fileLabel} contains results from a different SKILL.md hash. Refusing to resume mixed-skill run. Start a new RUN_ID or delete the existing JSONL file.`
-      );
-    }
+    // Publishable runs should start with a fresh RUN_ID after these fields exist.
+    assertMatchingHash(record, "skill_sha256", skill_sha256, fileLabel, "SKILL.md");
+    assertMatchingHash(record, "cases_sha256", cases_sha256, fileLabel, "cases");
+    assertMatchingHash(record, "run_config_sha256", run_config_sha256, fileLabel, "run configuration");
+  }
+}
 
-    if (record.cases_sha256 && record.cases_sha256 !== cases_sha256) {
-      throw new Error(
-        `${fileLabel} contains results from a different cases hash. Refusing to resume mixed-case run. Start a new RUN_ID or delete the existing JSONL file.`
-      );
-    }
+function assertMatchingHash(record, field, expected, fileLabel, description) {
+  if (!expected || !record[field]) return;
+
+  if (record[field] !== expected) {
+    throw new Error(
+      `${fileLabel} contains results from a different ${description} hash. Refusing to resume mixed run. Start a new RUN_ID or delete the existing JSONL file.`
+    );
   }
 }

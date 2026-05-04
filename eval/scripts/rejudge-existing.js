@@ -8,25 +8,32 @@ import { judgePairwise, PAIRWISE_MODES } from "../lib/pairwiseJudge.js";
 import { scoreJudgment } from "../lib/score.js";
 import { summarizeResults, summarizePairwise } from "../lib/metrics.js";
 import { sha256, stableJson } from "../lib/hash.js";
-import { appendJsonl, readJsonlSafe, resultKey } from "../lib/jsonl.js";
 import {
-  getAnswerModel,
-  getAnswerTemperature,
+  appendJsonl,
+  assertResumeHashes,
+  loadCompletedResults,
+  pairwiseKey,
+  readJsonlSafe,
+  resultKey
+} from "../lib/jsonl.js";
+import {
   getDoubleSwappedPairwise,
   getJudgeModel,
   getJudgeProvider,
   getJudgeTemperature
 } from "../lib/config.js";
+import { makeTimestampRunId, validateRunId } from "../lib/runId.js";
+import { textStats } from "../lib/runBatch.js";
 
-const sourceRunId = process.env.SOURCE_RUN_ID;
+const sourceRunId = validateRunId(process.env.SOURCE_RUN_ID, "SOURCE_RUN_ID");
+const runId = validateRunId(
+  process.env.RUN_ID || `${sourceRunId}.rejudge.${getJudgeProvider()}.${makeTimestampRunId()}`,
+  "RUN_ID"
+);
 
-if (!sourceRunId) {
-  throw new Error("SOURCE_RUN_ID is required. Example: SOURCE_RUN_ID=run-123 JUDGE_PROVIDER=openai npm run rejudge");
-}
-
-const runId = process.env.RUN_ID || `${sourceRunId}.rejudge.${getJudgeProvider()}.${new Date().toISOString().replace(/[:.]/g, "-")}`;
 const resultsDir = path.join(process.cwd(), "results");
 const sourcePath = path.join(resultsDir, `${sourceRunId}.results.jsonl`);
+const sourceSummaryPath = path.join(resultsDir, `${sourceRunId}.summary.json`);
 const outputPath = path.join(resultsDir, `${runId}.results.jsonl`);
 const summaryPath = path.join(resultsDir, `${runId}.summary.json`);
 
@@ -36,21 +43,67 @@ if (source.records.length === 0) {
   throw new Error(`No source records found at ${sourcePath}`);
 }
 
+const sourceSummary = fs.existsSync(sourceSummaryPath)
+  ? JSON.parse(fs.readFileSync(sourceSummaryPath, "utf8"))
+  : null;
+
 const allCases = loadAllCases();
 const caseById = new Map(allCases.map(testCase => [testCase.id, testCase]));
 const skillHash = sha256(loadSkillPrompt());
 const casesHash = sha256(stableJson(allCases.map(({ source_file, ...rest }) => rest)));
 
+const sourceRunConfig = sourceSummary?.run_config || null;
+const sourceRunConfigHash = sourceSummary?.run_config_sha256 || source.records[0]?.run_config_sha256 || null;
+const sourceModelUnderTest = sourceSummary?.model_under_test || sourceRunConfig?.answer_model || null;
+const sourceAnswerTemperature = sourceSummary?.answer_temperature ?? sourceRunConfig?.answer_temperature ?? null;
+const sourceEvaluatedCaseIds = sourceSummary?.evaluated_case_ids || [...new Set(source.records.map(record => record.caseId))];
+
+const rejudgeConfig = {
+  rejudge_only: true,
+  source_run_id: sourceRunId,
+  source_run_config_sha256: sourceRunConfigHash,
+  judge_provider: getJudgeProvider(),
+  judge_model: getJudgeModel(),
+  judge_temperature: getJudgeTemperature(),
+  double_swapped_pairwise: getDoubleSwappedPairwise(),
+  pairwise_seed_run_id: sourceRunId
+};
+const rejudgeConfigHash = sha256(stableJson(rejudgeConfig));
+
+assertResumeHashes(source.records, {
+  skill_sha256: skillHash,
+  cases_sha256: casesHash,
+  fileLabel: sourcePath
+});
+
 fs.mkdirSync(resultsDir, { recursive: true });
 
-const rejudgedResults = [];
+const outputState = loadCompletedResults(outputPath, resultKey);
+assertResumeHashes(outputState.results, {
+  skill_sha256: skillHash,
+  cases_sha256: casesHash,
+  run_config_sha256: rejudgeConfigHash,
+  fileLabel: outputPath
+});
+
+const rejudgedResults = outputState.results;
+const completedAbsolute = outputState.completedKeys;
 
 console.log(`Rejudging source run: ${sourceRunId}`);
 console.log(`New run: ${runId}`);
 console.log(`Judge provider: ${getJudgeProvider()}`);
 console.log(`Judge model: ${getJudgeModel()} @ T=${getJudgeTemperature()}`);
+console.log(`Pairwise seed run: ${sourceRunId}`);
+console.log(`Existing rejudged absolute results: ${rejudgedResults.length}`);
 
 for (const record of source.records) {
+  const key = resultKey(record);
+
+  if (completedAbsolute.has(key)) {
+    console.log(`Skipping completed rejudge result: ${key}`);
+    continue;
+  }
+
   const testCase = caseById.get(record.caseId);
 
   if (!testCase) {
@@ -58,7 +111,7 @@ for (const record of source.records) {
     continue;
   }
 
-  console.log(`Rejudging ${record.caseId}:${record.condition}:${record.trial}`);
+  console.log(`Rejudging ${key}`);
 
   const judgment = await judgeAnswer({ testCase, answer: record.answer });
   const score = scoreJudgment(judgment);
@@ -66,16 +119,21 @@ for (const record of source.records) {
   const result = {
     ...record,
     rejudged_from_run_id: sourceRunId,
+    source_run_config_sha256: sourceRunConfigHash,
     judge_provider: getJudgeProvider(),
     judge_model: getJudgeModel(),
     judge_temperature: getJudgeTemperature(),
     skill_sha256: skillHash,
     cases_sha256: casesHash,
+    run_config_sha256: rejudgeConfigHash,
+    rejudge_config_sha256: rejudgeConfigHash,
+    answer_stats: record.answer_stats || textStats(record.answer),
     judgment,
     score
   };
 
   appendJsonl(outputPath, result);
+  completedAbsolute.add(key);
   rejudgedResults.push(result);
 }
 
@@ -83,10 +141,23 @@ const byKey = new Map(rejudgedResults.map(result => [resultKey(result), result])
 const positionOrders = getDoubleSwappedPairwise() ? ["skill_a", "baseline_a"] : ["seeded"];
 const pairwiseSummaries = {};
 const pairwiseFiles = {};
+const skippedBadPairwiseLines = {};
 
 for (const mode of PAIRWISE_MODES) {
   const pairwisePath = path.join(resultsDir, `${runId}.pairwise.${mode}.jsonl`);
-  const pairwiseResults = [];
+  const pairwiseState = loadCompletedResults(pairwisePath, pairwiseKey);
+  assertResumeHashes(pairwiseState.results, {
+    skill_sha256: skillHash,
+    cases_sha256: casesHash,
+    run_config_sha256: rejudgeConfigHash,
+    fileLabel: pairwisePath
+  });
+
+  const pairwiseResults = pairwiseState.results;
+  const completedPairwise = pairwiseState.completedKeys;
+  skippedBadPairwiseLines[mode] = pairwiseState.skipped_bad_lines;
+
+  console.log(`Existing ${mode} pairwise rejudge results: ${pairwiseResults.length}`);
 
   for (const testCase of allCases) {
     const trials = new Set(
@@ -102,11 +173,18 @@ for (const mode of PAIRWISE_MODES) {
       if (!baseline || !skill) continue;
 
       for (const positionOrder of positionOrders) {
+        const key = pairwiseKey({ caseId: testCase.id, trial, position_order: positionOrder });
+
+        if (completedPairwise.has(key)) {
+          console.log(`Skipping completed ${mode} pairwise rejudge: ${key}`);
+          continue;
+        }
+
         const pairwise = await judgePairwise({
           testCase,
           baselineAnswer: baseline.answer,
           skillAnswer: skill.answer,
-          runId,
+          seedRunId: sourceRunId,
           trial,
           mode,
           positionOrder
@@ -118,15 +196,20 @@ for (const mode of PAIRWISE_MODES) {
           trial,
           mode,
           position_order: positionOrder,
+          pairwise_seed_run_id: sourceRunId,
           requires_direct_answer: testCase.requires_direct_answer,
           clarification_expected: testCase.clarification_expected,
           skill_sha256: skillHash,
           cases_sha256: casesHash,
+          run_config_sha256: rejudgeConfigHash,
+          rejudge_config_sha256: rejudgeConfigHash,
+          source_run_config_sha256: sourceRunConfigHash,
           pairwise,
           winner_condition: pairwise.winner_condition
         };
 
         appendJsonl(pairwisePath, pairwiseResult);
+        completedPairwise.add(key);
         pairwiseResults.push(pairwiseResult);
       }
     }
@@ -141,14 +224,27 @@ const artifact = {
   rejudged_from_run_id: sourceRunId,
   created_at: new Date().toISOString(),
   rejudge_only: true,
-  model_under_test: getAnswerModel(),
-  original_answer_temperature: getAnswerTemperature(),
+  model_under_test: sourceModelUnderTest,
+  original_answer_temperature: sourceAnswerTemperature,
   judge_provider: getJudgeProvider(),
   judge_model: getJudgeModel(),
   judge_temperature: getJudgeTemperature(),
   double_swapped_pairwise: getDoubleSwappedPairwise(),
+  pairwise_seed_run_id: sourceRunId,
   skill_sha256: skillHash,
   cases_sha256: casesHash,
+  source_run_config_sha256: sourceRunConfigHash,
+  run_config_sha256: rejudgeConfigHash,
+  rejudge_config_sha256: rejudgeConfigHash,
+  source_run_config: sourceRunConfig,
+  rejudge_config: rejudgeConfig,
+  evaluated_case_ids: sourceEvaluatedCaseIds,
+  skipped_bad_jsonl_lines: {
+    source_absolute: source.skipped_bad_lines,
+    rejudged_absolute: outputState.skipped_bad_lines,
+    pairwise_gold_anchored: skippedBadPairwiseLines.gold_anchored,
+    pairwise_gold_blind: skippedBadPairwiseLines.gold_blind
+  },
   absolute_summary: summarizeResults(rejudgedResults),
   pairwise_gold_anchored_summary: pairwiseSummaries.gold_anchored,
   pairwise_gold_blind_summary: pairwiseSummaries.gold_blind,

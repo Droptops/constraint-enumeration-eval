@@ -9,10 +9,19 @@ import {
   getJudgeProvider,
   getJudgeTemperature,
   getEvalConditions,
+  getRunConfig,
   isSameVendorJudge
 } from "./config.js";
 import { loadSkillPrompt } from "./loadSkill.js";
-import { generateAnswer } from "./runCase.js";
+import {
+  BASELINE_SYSTEM,
+  CAREFUL_CONTROL_SYSTEM,
+  CONSTRAINT_AXIS_PROMPTING_SYSTEM,
+  CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM,
+  STEP_BY_STEP_CONTROL_SYSTEM,
+  STYLE_MATCHED_REWRITE_SYSTEM
+} from "./runCase.js";
+import { generateAnswerResult } from "./runCase.js";
 import { judgeAnswer } from "./judge.js";
 import { judgePairwise, PAIRWISE_MODES } from "./pairwiseJudge.js";
 import { scoreJudgment } from "./score.js";
@@ -25,6 +34,7 @@ import {
   pairwiseKey,
   resultKey
 } from "./jsonl.js";
+import { validateRunId } from "./runId.js";
 
 export function selectDiverseCases(allCases, limit) {
   const byCategory = new Map();
@@ -38,13 +48,14 @@ export function selectDiverseCases(allCases, limit) {
 
   const categories = Array.from(byCategory.keys()).sort();
   const selected = [];
+  let index = 0;
 
   while (selected.length < limit) {
     let added = false;
 
     for (const category of categories) {
       const bucket = byCategory.get(category);
-      const next = bucket.shift();
+      const next = bucket[index];
 
       if (next) {
         selected.push(next);
@@ -55,6 +66,7 @@ export function selectDiverseCases(allCases, limit) {
     }
 
     if (!added) break;
+    index++;
   }
 
   return selected;
@@ -74,6 +86,19 @@ function makePairwisePaths(resultsDir, runId) {
   );
 }
 
+function relativeResultPath(filePath) {
+  return path.relative(process.cwd(), filePath).replaceAll(path.sep, "/");
+}
+
+export function textStats(text) {
+  const normalized = String(text || "").trim();
+  return {
+    characters: normalized.length,
+    approximate_words: normalized ? normalized.split(/\s+/).length : 0,
+    approximate_tokens: normalized ? Math.ceil(normalized.length / 4) : 0
+  };
+}
+
 export async function runBatch({
   runId,
   cases,
@@ -83,9 +108,7 @@ export async function runBatch({
   smokeTest = false,
   log = () => {}
 }) {
-  if (!runId || typeof runId !== "string") {
-    throw new Error("runBatch requires a runId string.");
-  }
+  validateRunId(runId);
 
   if (!Array.isArray(cases) || cases.length === 0) {
     throw new Error("runBatch requires at least one case.");
@@ -104,11 +127,14 @@ export async function runBatch({
   const skill = loadSkillPrompt();
   const skillHash = sha256(skill);
   const casesHash = semanticCasesHash(allCasesForHash);
+  const runConfig = getRunConfig();
+  const runConfigHash = sha256(stableJson(runConfig));
 
   const absoluteState = loadCompletedResults(absolutePath, resultKey);
   assertResumeHashes(absoluteState.results, {
     skill_sha256: skillHash,
     cases_sha256: casesHash,
+    run_config_sha256: runConfigHash,
     fileLabel: absolutePath
   });
 
@@ -118,6 +144,7 @@ export async function runBatch({
       assertResumeHashes(state.results, {
         skill_sha256: skillHash,
         cases_sha256: casesHash,
+        run_config_sha256: runConfigHash,
         fileLabel: pairwisePaths[mode]
       });
       return [mode, state];
@@ -153,7 +180,11 @@ export async function runBatch({
 
         log(`Running ${key}`);
 
-        const answer = await generateAnswer({ testCase, condition });
+        const baselineForStyle = condition === "style_matched_baseline"
+          ? absoluteMap.get(resultKey({ caseId: testCase.id, condition: "baseline", trial }))?.answer
+          : null;
+        const answerResult = await generateAnswerResult({ testCase, condition, baselineAnswer: baselineForStyle });
+        const answer = answerResult.text;
         const judgment = await judgeAnswer({ testCase, answer });
         const score = scoreJudgment(judgment);
 
@@ -165,13 +196,24 @@ export async function runBatch({
           prompt: testCase.prompt,
           expected_final_answer: testCase.expected_final_answer,
           acceptable_final_answers: testCase.acceptable_final_answers,
+          not_acceptable_final_answers: testCase.not_acceptable_final_answers,
           requires_direct_answer: testCase.requires_direct_answer,
           clarification_expected: testCase.clarification_expected,
           skill_sha256: skillHash,
           cases_sha256: casesHash,
+          run_config_sha256: runConfigHash,
           answer,
           judgment,
-          score
+          score,
+          answer_stats: textStats(answer),
+          answer_stop_reason: answerResult.stop_reason,
+          answer_truncated: answerResult.truncated,
+          answer_generation_kind: answerResult.generation_kind,
+          answer_generation_metadata: Object.fromEntries(
+            Object.entries(answerResult).filter(([metadataKey]) =>
+              !["text", "raw", "stop_reason", "truncated", "generation_kind"].includes(metadataKey)
+            )
+          )
         };
 
         appendJsonl(absolutePath, result);
@@ -213,7 +255,7 @@ export async function runBatch({
             testCase,
             baselineAnswer: baseline.answer,
             skillAnswer: skillResult.answer,
-            runId,
+            seedRunId: runId,
             trial,
             mode,
             positionOrder
@@ -229,6 +271,7 @@ export async function runBatch({
             position_order: positionOrder,
             skill_sha256: skillHash,
             cases_sha256: casesHash,
+            run_config_sha256: runConfigHash,
             pairwise,
             winner_condition: pairwise.winner_condition
           };
@@ -263,6 +306,18 @@ export async function runBatch({
     double_swapped_pairwise: getDoubleSwappedPairwise(),
     skill_sha256: skillHash,
     cases_sha256: casesHash,
+    run_config_sha256: runConfigHash,
+    run_config: runConfig,
+    system_prompt_stats: {
+      baseline: textStats(BASELINE_SYSTEM),
+      careful_control: textStats(CAREFUL_CONTROL_SYSTEM),
+      step_by_step_control: textStats(STEP_BY_STEP_CONTROL_SYSTEM),
+      constraint_axis_prompting: textStats(CONSTRAINT_AXIS_PROMPTING_SYSTEM),
+      constraint_check_no_enumeration: textStats(CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM),
+      style_matched_baseline: textStats(STYLE_MATCHED_REWRITE_SYSTEM),
+      skill: textStats(skill),
+      skill_concise: textStats(`${skill}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`)
+    },
     cases_sha256_scope: "all_cases_corpus",
     evaluated_case_ids: cases.map(testCase => testCase.id),
     total_case_corpus_count: allCasesForHash.length,
@@ -277,10 +332,10 @@ export async function runBatch({
     pairwise_gold_anchored_summary: pairwiseSummaries.gold_anchored,
     pairwise_gold_blind_summary: pairwiseSummaries.gold_blind,
     result_files: {
-      absolute_results_jsonl: `results/${runId}.results.jsonl`,
-      pairwise_gold_anchored_jsonl: `results/${runId}.pairwise.gold_anchored.jsonl`,
-      pairwise_gold_blind_jsonl: `results/${runId}.pairwise.gold_blind.jsonl`,
-      summary_json: `results/${runId}.summary.json`
+      absolute_results_jsonl: relativeResultPath(absolutePath),
+      pairwise_gold_anchored_jsonl: relativeResultPath(pairwisePaths.gold_anchored),
+      pairwise_gold_blind_jsonl: relativeResultPath(pairwisePaths.gold_blind),
+      summary_json: relativeResultPath(summaryPath)
     }
   };
 

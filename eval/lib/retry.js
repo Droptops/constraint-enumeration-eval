@@ -1,5 +1,16 @@
 export const DEFAULT_RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504, 529]);
 
+export class ApiHttpError extends Error {
+  constructor({ provider, status, body, retryable }) {
+    super(`${provider} error ${status}: ${body}`);
+    this.name = "ApiHttpError";
+    this.provider = provider;
+    this.status = status;
+    this.body = body;
+    this.retryable = retryable;
+  }
+}
+
 export function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -23,4 +34,9 @@ export function jitter(ms) {
 
 export function exponentialBackoffMs(attempt, capMs = 30_000) {
   return jitter(Math.min(capMs, 1000 * 2 ** attempt));
+}
+
+export function shouldRetryTransportError(error) {
+  // API 4xx/validation/auth errors should fail fast. Fetch/network errors can retry.
+  return !(error instanceof ApiHttpError) || error.retryable === true;
 }

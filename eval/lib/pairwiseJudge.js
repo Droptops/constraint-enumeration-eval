@@ -48,12 +48,12 @@ export const pairwiseOutputConfig = {
           type: "string",
           enum: ["A", "B", "tie"],
           description:
-            "Which answer better considers the binding constraints. Explicit list formatting is not required."
+            "Which answer better considers the hard constraints and required inference. Explicit list formatting is not required."
         },
         better_applies_constraints: {
           type: "string",
           enum: ["A", "B", "tie"],
-          description: "Which answer better applies the relevant constraints to the recommendation."
+          description: "Which answer better applies the relevant constraints and inferences to the recommendation."
         },
         better_final_recommendation: {
           type: "string",
@@ -77,12 +77,12 @@ export const pairwiseOutputConfig = {
   }
 };
 
-function assignPair({ baselineAnswer, skillAnswer, runId, caseId, trial, mode, positionOrder }) {
+export function assignPair({ baselineAnswer, skillAnswer, seedRunId, caseId, trial, mode, positionOrder }) {
   if (!POSITION_ORDERS.includes(positionOrder)) {
     throw new Error(`Invalid positionOrder: ${positionOrder}`);
   }
 
-  const seed = `${runId}:${caseId}:${trial}:${mode}:${positionOrder}:pairwise-order`;
+  const seed = `${seedRunId}:${caseId}:${trial}:${mode}:${positionOrder}:pairwise-order`;
   const skillIsA =
     positionOrder === "skill_a" ? true : positionOrder === "baseline_a" ? false : seededBoolean(seed);
 
@@ -119,13 +119,11 @@ You are intentionally not given the gold answer. Do not assume hidden facts beyo
 PROMPT:
 ${JSON.stringify(testCase.prompt)}
 
-<answer_a>
-${answerA}
-</answer_a>
+ANSWER_A_JSON_STRING:
+${JSON.stringify(answerA)}
 
-<answer_b>
-${answerB}
-</answer_b>
+ANSWER_B_JSON_STRING:
+${JSON.stringify(answerB)}
 
 Judging rules:
 - Prefer the answer that better notices and respects practical constraints implied by the prompt.
@@ -158,26 +156,33 @@ ${JSON.stringify(testCase.requires_direct_answer)}
 CLARIFICATION EXPECTED:
 ${JSON.stringify(testCase.clarification_expected)}
 
-BINDING CONSTRAINTS:
-${JSON.stringify(testCase.binding_constraints, null, 2)}
+EXPECTED BEHAVIOR:
+${JSON.stringify(testCase.expected_behavior)}
 
-SOFT CONSTRAINTS:
-${JSON.stringify(testCase.soft_constraints || [], null, 2)}
+OBSERVED FACTS:
+${JSON.stringify(testCase.observed_facts || [], null, 2)}
 
-COMMON FAILURE MODES:
-${JSON.stringify(testCase.common_failure_modes || [], null, 2)}
+HARD CONSTRAINTS:
+${JSON.stringify(testCase.hard_constraints || testCase.binding_constraints, null, 2)}
 
-<answer_a>
-${answerA}
-</answer_a>
+SOFT PREFERENCES:
+${JSON.stringify(testCase.soft_preferences || testCase.soft_constraints || [], null, 2)}
 
-<answer_b>
-${answerB}
-</answer_b>
+REQUIRED INFERENCE:
+${JSON.stringify(testCase.required_inference || [], null, 2)}
+
+PROHIBITED FAILURE MODES:
+${JSON.stringify(testCase.prohibited_failure_modes || testCase.common_failure_modes || [], null, 2)}
+
+ANSWER_A_JSON_STRING:
+${JSON.stringify(answerA)}
+
+ANSWER_B_JSON_STRING:
+${JSON.stringify(answerB)}
 
 Judging rules:
-- Prefer the answer that better considers the binding constraints. Explicit list formatting is not required.
-- Prefer the answer that better applies those constraints to the final recommendation.
+- Prefer the answer that better considers the hard constraints and required inference. Explicit list formatting is not required.
+- Prefer the answer that better applies those constraints and inferences to the final recommendation.
 - Prefer the answer that avoids violating hard constraints.
 - Prefer the answer that is more decision-useful, not merely verbose.
 - Do not reward verbosity for its own sake.
@@ -191,7 +196,7 @@ export async function judgePairwise({
   testCase,
   baselineAnswer,
   skillAnswer,
-  runId,
+  seedRunId,
   trial,
   mode = "gold_anchored",
   positionOrder = "seeded"
@@ -203,7 +208,7 @@ export async function judgePairwise({
   const blinded = assignPair({
     baselineAnswer,
     skillAnswer,
-    runId,
+    seedRunId,
     caseId: testCase.id,
     trial,
     mode,
@@ -225,6 +230,21 @@ export async function judgePairwise({
     outputConfig: pairwiseOutputConfig,
     schemaName: "pairwise_judge"
   });
+
+  if (result.stop_reason === "refusal" || result.stop_reason === "max_tokens") {
+    return {
+      valid_pairwise_response: false,
+      mode,
+      position_order: blinded.position_order,
+      seed: blinded.seed,
+      answer_a_condition: blinded.answer_a_condition,
+      answer_b_condition: blinded.answer_b_condition,
+      winner_condition: null,
+      raw: result.text,
+      stop_reason: result.stop_reason,
+      error: `Invalid structured output stop_reason: ${result.stop_reason}`
+    };
+  }
 
   try {
     const parsedJson = JSON.parse(result.text);

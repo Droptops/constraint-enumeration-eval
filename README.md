@@ -1,56 +1,162 @@
 # Constraint Enumeration Eval
 
-Constraint Enumeration is a decision-quality layer for LLMs. The thesis is simple: models often fail not because they cannot reason, but because they answer too quickly. They optimize for the most obvious local feature before checking whether the full set of binding constraints can be satisfied.
+Constraint Enumeration is a decision-quality eval for real-world prompts where a model can answer too quickly, optimize for the most salient local feature, and miss the full conjunction of constraints required for a useful recommendation.
 
-This repo evaluates that failure mode.
+This repo evaluates whether a constraint-first system prompt reduces those failures relative to plain, careful, constraint-axis, style-matched, and no-enumeration controls.
+
+## Current release: v4.0
+
+v4.0 is the publishability-hardening release. It keeps the v3.0 engineering fixes and adds the controls/diagnostics a hostile reviewer would ask for.
+
+New in v4.0:
+
+- Added `constraint_axis_prompting` control: primes broad constraint categories without the protocol or enumeration order.
+- Added `style_matched_baseline` control: rewrites the baseline answer into enumerated style without changing the baseline decision.
+- Default pass gate no longer depends on `considers_binding_constraints_implicitly`; that field is now diagnostic only.
+- Added gate-sensitivity tables for alternate pass gates.
+- Added case-level bootstrap confidence intervals for paired binary deltas; normal CIs are retained as diagnostics only.
+- Added length-quartile pass-rate breakdowns, plus p50/p90 answer-length stats.
+- Added answer truncation tracking from the answer-generation stop reason.
+- Added Gemini/Google as a third judge-provider path in addition to Anthropic and OpenAI.
+- Updated the default OpenAI judge model to `gpt-5.1`; verify account access with `npm run check:models`.
+- Added explicit `not_acceptable_final_answers` to case schema normalization and judge prompts.
+- Hardened judge prompts against answer-delimiter injection by serializing candidate answers as JSON strings instead of XML-like tags.
+- Added explicit OpenAI refusal/reasoning-block handling.
+- Replaced object-backed grouping with null-prototype grouping.
+- Added Node 20+ engine requirement, package lock, unit tests, and GitHub Actions CI.
+- Added `CASE_DIR` support for independently authored held-out case folders.
 
 ## Core claim being tested
 
 A useful real-world recommendation must satisfy a conjunction:
 
 ```text
-constraint consideration
-AND constraint application
+constraint application
 AND correct final answer
 AND decision usefulness
 AND no hard-constraint violation
+AND no unnecessary clarification
+AND no harmful over-enumeration
 ```
 
-The judge fills structured fields. The official pass/fail score is computed in code using an AND gate. The judge does **not** directly decide pass/fail.
+The judge fills structured fields. The official pass/fail score is computed in code using an AND gate. The judge does not directly decide pass/fail.
+
+`considers_binding_constraints_implicitly` and `enumerates_binding_constraints_explicitly` are still recorded, but they are diagnostics rather than default gate requirements.
 
 ## Architecture
 
 ```text
-Cases → Model answer → Structured judge → AND gate → Metrics → Saved run artifact
+Cases -> model answer -> structured judge -> code gate -> metrics -> JSONL artifacts
 ```
 
 The browser never sends arbitrary `system`, `messages`, or `max_tokens`. The server controls the prompt, model, temperature, case lookup, judge prompt, and token budget.
 
-## Current methodology defaults
+For full runs, prefer the CLI. The browser UI is useful for spot checks and small local runs, but long evals can exceed serverless request time limits.
 
-The repo defaults are chosen to avoid the most obvious validity traps:
+## Quick start
 
 ```bash
+cd eval
+cp .env.example .env.local
+npm install
+npm run ci
+npm run check:models
+npm run smoke
+```
+
+`npm run check:models` requires valid API keys. It verifies that the configured answer and judge model IDs are actually available to your account.
+
+## Recommended publishable run
+
+For a real write-up, do not headline `skill - baseline`. Headline `skill - careful_control` and report the full ablation matrix.
+
+```bash
+cd eval
+EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise \
+DOUBLE_SWAPPED_PAIRWISE=true \
+SMOKE_TRIALS=3 \
+RUN_ID=main-v4-anthropic \
+npm run smoke
+```
+
+Then rejudge the same saved answers with OpenAI:
+
+```bash
+SOURCE_RUN_ID=main-v4-anthropic \
+RUN_ID=main-v4-openai-rejudge \
+JUDGE_PROVIDER=openai \
+OPENAI_JUDGE_MODEL=gpt-5.1 \
+DOUBLE_SWAPPED_PAIRWISE=true \
+npm run rejudge
+```
+
+And optionally with Gemini/Google as a third judge family:
+
+```bash
+SOURCE_RUN_ID=main-v4-anthropic \
+RUN_ID=main-v4-gemini-rejudge \
+JUDGE_PROVIDER=google \
+GEMINI_JUDGE_MODEL=gemini-2.5-pro \
+DOUBLE_SWAPPED_PAIRWISE=true \
+npm run rejudge
+```
+
+The rejudge path keeps the original answer model and answer temperature in the summary artifact. It also uses `SOURCE_RUN_ID` for pairwise A/B order seeding so the rejudge sees the same answer ordering as the source run unless double-swapping is explicitly used.
+
+## Held-out cases
+
+The included `eval/cases` corpus is an in-sample development set. Do not make a strong public claim from it alone.
+
+For a defensible public claim:
+
+```bash
+CASE_DIR=cases_holdout \
+EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise \
+DOUBLE_SWAPPED_PAIRWISE=true \
+SMOKE_TRIALS=3 \
+RUN_ID=heldout-v4-anthropic \
+npm run smoke
+```
+
+Author 15-20 held-out cases without looking at `SKILL.md`, or use external decision-trap sources filtered into the schema. Report the held-out delta as the headline and the in-sample delta as a sanity check.
+
+## Environment variables
+
+Create `eval/.env.local`:
+
+```bash
+ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=claude-sonnet-4-6
 JUDGE_PROVIDER=anthropic
 JUDGE_MODEL=claude-opus-4-7
-# Optional true cross-family judge:
-# JUDGE_PROVIDER=openai
-# OPENAI_API_KEY=...
-# OPENAI_JUDGE_MODEL=gpt-4o-2024-08-06
+ANTHROPIC_VERSION=2023-06-01
 ANSWER_TEMPERATURE=0
 JUDGE_TEMPERATURE=0
+EVAL_ADMIN_TOKEN=
 DOUBLE_SWAPPED_PAIRWISE=false
+
+OPENAI_API_KEY=
+OPENAI_JUDGE_MODEL=gpt-5.1
+
+GEMINI_API_KEY=
+GEMINI_JUDGE_MODEL=gemini-2.5-pro
+
+STYLE_REWRITE_MODEL=claude-sonnet-4-6
+
+# Optional. Must include baseline and skill.
+# Allowed: baseline,careful_control,step_by_step_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise
+# EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise
+
+# Optional alternate case folder.
+# CASE_DIR=cases_holdout
+
+# Legacy shorthand for baseline,careful_control,skill when EVAL_CONDITIONS is unset.
 INCLUDE_LENGTH_CONTROL=false
 ```
 
-The default `ANSWER_TEMPERATURE=0` is deterministic and pairs correctly with `trials=1`. For variance testing, use a nonzero answer temperature such as `0.5` only with enough trials to average sampling noise. The Anthropic wrapper omits `temperature` for Claude Opus 4.7 requests because Anthropic removed sampling parameters for that model; keep this behavior if you use Opus 4.7 as judge.
+Temperature handling is provider/model-aware. Anthropic answer-model temperatures are validated in `[0, 1]`; OpenAI judge temperatures are validated in `[0, 2]`. Sampling parameters are omitted for Claude Opus 4.7 and conservative OpenAI reasoning-family judge models such as `o1`, `o3`, `o4`, and `gpt-5*` to avoid model-family 400s.
 
-`claude-opus-4-7` is a higher-capability separate judge model from the answer model. This is **cross-tier within Anthropic**, not true cross-family judging.
-
-True cross-family judging requires a different vendor/model family. The repo supports `JUDGE_PROVIDER=openai` for an optional OpenAI structured-output judge pass. Same-vendor judge results should be treated as directional unless confirmed by another judge family. Same-model judging is supported for cost reasons, but it is **not recommended for publishable claims** because it can reward outputs that look like the same model family's preferred format.
-
-Anthropic structured judging uses the current Claude Messages API JSON-output shape: `output_config.format` with `type: "json_schema"`. Current Anthropic docs state that the previous beta header and `output_format` parameter moved to `output_config.format`, and beta headers are no longer required. For Claude Opus 4.7 specifically, this repo omits sampling parameters such as `temperature` from Anthropic requests.
+Development servers are unauthenticated when `EVAL_ADMIN_TOKEN` is unset outside production. Do not expose `next dev` publicly without setting a token.
 
 ## Case set
 
@@ -63,55 +169,88 @@ business
 safety
 ```
 
-The case set intentionally mixes direct-answer, clarification-expected, and either-acceptable cases across categories so category does not become a proxy for the expected behavior.
+The case set intentionally mixes direct-answer, clarification-expected, and either-acceptable cases across categories so category does not become a proxy for expected behavior.
 
-Each case includes:
+Schema v1.1 separates facts, constraints, conclusions, and unacceptable answers:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "id": "car_wash_50m",
   "category": "physical",
   "prompt": "I need to get my car washed. The car wash is 50m away. Should I walk or drive?",
+  "expected_behavior": "direct_answer",
   "requires_direct_answer": true,
   "clarification_expected": false,
   "expected_final_answer": "drive",
-  "acceptable_final_answers": ["drive", "drive the car", "take the car through the car wash"],
-  "binding_constraints": [
-    "The goal is to get the car washed, not merely to move the person",
+  "acceptable_final_answers": [
+    "drive",
+    "drive the car",
+    "take the car through the car wash"
+  ],
+  "not_acceptable_final_answers": [
+    "A recommendation that optimizes for short distance instead of moving the car."
+  ],
+  "observed_facts": [
+    "The goal is to get the car washed, not merely to move the person"
+  ],
+  "hard_constraints": [
     "The car must physically arrive at the car wash",
     "Walking alone does not move the car"
   ],
-  "soft_constraints": ["The car wash is close"],
-  "common_failure_modes": [
+  "soft_preferences": [
+    "The car wash is close"
+  ],
+  "required_inference": [
+    "drive"
+  ],
+  "prohibited_failure_modes": [
     "Optimizes for short distance instead of moving the car"
   ]
 }
 ```
 
-Case validation enforces:
+Validation enforces:
 
 ```text
-schema_version === "1.0"
-category must match the source case filename, e.g. physical.json contains category="physical"
+schema_version is "1.0" or "1.1"
+category matches the source case filename
 requires_direct_answer and clarification_expected cannot both be true
-binding_constraints is a non-empty array
+v1.1 hard_constraints is non-empty
 expected_final_answer exists
 acceptable_final_answers defaults to [expected_final_answer]
+not_acceptable_final_answers defaults to []
 ```
 
-Behavior semantics:
+`binding_constraints`, `soft_constraints`, and `common_failure_modes` are still emitted as compatibility aliases after loading cases, but new cases should use v1.1 fields.
+
+## Conditions and ablations
+
+Default conditions:
 
 ```text
-requires_direct_answer=true, clarification_expected=false
-  → a direct answer is required; unnecessary clarification is penalized.
-
-requires_direct_answer=false, clarification_expected=true
-  → a clarifying question is expected, or assumptions must be explicitly stated before recommending.
-
-requires_direct_answer=false, clarification_expected=false
-  → either a direct answer with clear assumptions or a clarifying question can be acceptable.
+baseline
+skill
 ```
+
+Optional conditions:
+
+```text
+careful_control
+step_by_step_control
+constraint_axis_prompting
+constraint_check_no_enumeration
+style_matched_baseline
+skill_concise
+```
+
+Interpretation:
+
+- `careful_control`: realistic deployment floor; use `skill - careful_control` as the headline lift.
+- `constraint_axis_prompting`: tests whether generic constraint-category priming is enough.
+- `constraint_check_no_enumeration`: tests whether invisible constraint checking is enough.
+- `style_matched_baseline`: tests whether the judge is rewarding enumerated style rather than decision quality.
+- `skill_concise`: tests whether the protocol survives a verbosity constraint.
 
 ## Scoring
 
@@ -134,13 +273,10 @@ The structured judge returns fields including:
 }
 ```
 
-Explicit enumeration is **not** required for pass. This reduces the confound where the skill teaches the exact visible format that the rubric grades. The pass gate uses implicit constraint consideration and application, not list formatting.
-
-Official pass/fail logic:
+Default pass/fail logic:
 
 ```js
 const pass =
-  j.considers_binding_constraints_implicitly === true &&
   j.applies_constraints_correctly === true &&
   j.final_answer_correct === true &&
   j.answer_is_decision_useful === true &&
@@ -149,362 +285,121 @@ const pass =
   j.over_enumerates_irrelevant_constraints === false;
 ```
 
-## Primary metric
+Alternate gates are reported under `absolute_summary.*.gate_sensitivity`, including the older v3 strict gate that also required `considers_binding_constraints_implicitly`.
 
-### Constraint Failure Rate
+## Metrics
 
-The percentage of responses that miss, misapply, or violate at least one binding constraint required for the correct decision.
-
-Example report format after a real run:
+Primary metrics:
 
 ```text
-Baseline constraint failure rate: X%
-Constraint Enumeration constraint failure rate: Y%
-Reduction: Z percentage points
+constraint_failure_rate
+pass_rate
+paired skill-minus-control delta with bootstrap CI
+pairwise skill/baseline win/loss/tie rates
 ```
+
+Diagnostics:
+
+```text
+gate_sensitivity
+answer_length p50/p90/mean
+pass_rate_by_answer_length_quartile
+answer_truncation_rate
+invalid_judge_response_rate
+same-vendor warning
+margin-weighted pairwise score, explicitly diagnostic only
+```
+
+Pass rate is intentionally strict. `constraint_failure_rate` is the cleaner headline failure metric; pass rate is a supporting diagnostic.
+
+## Reproducibility and provenance
+
+Each result row records:
+
+```text
+skill_sha256
+cases_sha256
+run_config_sha256
+answer_stats
+answer_stop_reason
+answer_truncated
+judge fields
+code-computed score
+```
+
+Resume behavior refuses to mix results with different skill, case, or run-config hashes. `EVAL_CONDITIONS` is canonicalized before hashing, so `baseline,skill` and `skill,baseline` hash identically and execute in the canonical order required by `style_matched_baseline`.
 
 ## Pairwise judging
 
-The eval runs two pairwise modes.
-
-### Gold-anchored pairwise
-
-The judge sees:
+Pairwise modes:
 
 ```text
-prompt
-expected final answer
-acceptable final answers
-binding constraints
-soft constraints
-common failure modes
-Answer A
-Answer B
+gold_anchored
+gold_blind
 ```
 
-This is a stricter comparison against the gold case data.
+`gold_anchored` receives the expected answer and case constraints. `gold_blind` only receives the user prompt and the two candidate answers. Both serialize candidate answers as JSON strings to reduce delimiter-injection risk.
 
-### Gold-blind pairwise
+Use `DOUBLE_SWAPPED_PAIRWISE=true` for publishable runs so each pair is judged with both A/B orders.
 
-The judge sees only:
+Margin-weighted pairwise scores are retained for exploration only. Headline pairwise claims should use win/loss/tie rates.
 
-```text
-prompt
-Answer A
-Answer B
-```
+## Tests and CI
 
-This tests whether the Constraint Enumeration answer is more useful without revealing the gold answer or case rubric. If both pairwise modes agree, the result is much stronger.
-
-Pairwise answer ordering is blinded and deterministic using this seed:
-
-```text
-${runId}:${caseId}:${trial}:${mode}:${positionOrder}:pairwise-order
-```
-
-By default, each pair gets one seeded shuffle. If `DOUBLE_SWAPPED_PAIRWISE=true`, the runner judges each pair twice per mode:
-
-```text
-skill=A, baseline=B
-baseline=A, skill=B
-```
-
-Double-swapped pairwise costs more but reports:
-
-```text
-position_agreement_rate
-skill_wins_both_positions_rate
-baseline_wins_both_positions_rate
-split_decision_rate
-```
-
-## Reproducibility notes
-
-- Results are written incrementally as JSONL.
-- Malformed partial JSONL lines are skipped on resume and reported in the summary artifact.
-- Each result line stores `skill_sha256` and `cases_sha256`.
-- Resume refuses to continue if result hashes conflict with the current `SKILL.md` or case set.
-- Legacy records without per-result hashes are tolerated so old smoke files do not crash resume. Publishable runs should start with a fresh `RUN_ID`.
-- `cases_sha256` excludes `source_file` and tracks semantic case content only. Smoke runs hash the full case corpus even when evaluating a subset; the summary artifact records `evaluated_case_ids` and `total_case_corpus_count`.
-- Pairwise win rates are calculated over valid pairwise judgments only, using `validTotal` as the denominator.
-- Earlier versions of this repo divided pairwise rates by total. Results from before this change are not directly comparable.
-- Invalid pairwise responses are reported separately through `invalid_pairwise_rate`.
-- Margin weights for pairwise scoring are:
-
-```text
-large = 1.0
-medium = 0.66
-small = 0.33
-tie = 0
-```
-
-These weights are a design choice, not a statistical constant. Raw win rates are reported alongside margin-weighted scores so readers can recompute.
-
-## Environment variables
-
-Create `eval/.env.local`:
-
-```bash
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-4-6
-JUDGE_PROVIDER=anthropic
-JUDGE_MODEL=claude-opus-4-7
-# Optional true cross-family judge pass:
-# JUDGE_PROVIDER=openai
-OPENAI_API_KEY=
-OPENAI_JUDGE_MODEL=gpt-4o-2024-08-06
-ANTHROPIC_VERSION=2023-06-01
-ANSWER_TEMPERATURE=0
-JUDGE_TEMPERATURE=0
-DOUBLE_SWAPPED_PAIRWISE=false
-EVAL_ADMIN_TOKEN=
-```
-
-## Install
+Local:
 
 ```bash
 cd eval
+npm run ci
+```
+
+CI runs:
+
+```text
 npm install
+npm run check:cases
+npm run check:esm
+npm test
 ```
 
-## Run the smoke test
-
-```bash
-npm run smoke
-```
-
-The smoke test selects cases across categories instead of simply taking the first alphabetic files. The default smoke run evaluates 4 cases so each included category gets one representative when the four default categories are present.
-
-Do **not** cite headline lift from smoke cases. The smoke cases only verify that the machinery works.
-
-## Test resumability
-
-Use a fixed `RUN_ID`:
-
-```bash
-RUN_ID=smoke-test-resume npm run smoke
-# ctrl-c partway through
-RUN_ID=smoke-test-resume npm run smoke
-```
-
-The second run should skip completed absolute and pairwise tuples.
-
-## Run one case through the API
-
-```bash
-curl -X POST http://localhost:3000/api/run-case \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $EVAL_ADMIN_TOKEN" \
-  -d '{
-    "caseId": "car_wash_50m",
-    "condition": "skill"
-  }'
-```
-
-## Run the full eval
-
-```bash
-curl -X POST http://localhost:3000/api/run-eval \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $EVAL_ADMIN_TOKEN" \
-  -d '{
-    "trials": 1
-  }'
-```
-
-For a nonzero-temperature variance run, set `ANSWER_TEMPERATURE=0.5` in the server environment before starting Next, then use enough trials to average sampling noise:
-
-```bash
-curl -X POST http://localhost:3000/api/run-eval \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $EVAL_ADMIN_TOKEN" \
-  -d '{
-    "trials": 10
-  }'
-```
-
-To resume a previous run:
-
-```bash
-curl -X POST http://localhost:3000/api/run-eval \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $EVAL_ADMIN_TOKEN" \
-  -d '{
-    "trials": 1,
-    "runId": "existing-run-id"
-  }'
-```
-
-
-## Optional controls and rejudging
-
-Length-matched control arm:
-
-```bash
-INCLUDE_LENGTH_CONTROL=true npm run smoke
-```
-
-This adds `careful_control`, a generic carefulness prompt that is longer than the baseline but does not teach the Constraint Enumeration protocol. Use it to separate “any longer system prompt helps” from the specific skill effect.
-
-Rejudge existing answers with another judge family without regenerating model outputs:
-
-```bash
-SOURCE_RUN_ID={existingRunId} JUDGE_PROVIDER=openai OPENAI_API_KEY=... npm run rejudge
-```
-
-This is the recommended way to compare judge families on identical answer text.
-
-## Result artifacts
-
-Each run writes:
+Unit tests cover:
 
 ```text
-results/{runId}.results.jsonl
-results/{runId}.pairwise.gold_anchored.jsonl
-results/{runId}.pairwise.gold_blind.jsonl
-results/{runId}.summary.json
+score gate behavior
+McNemar approximation on a known input
+bootstrap CI shape
+prototype-safe grouping
+seeded randomness
+case loading and normalization
 ```
 
-The summary artifact includes:
+## What would falsify the result?
 
-```json
-{
-  "run_id": "2026-05-03T20-15-00Z",
-  "created_at": "2026-05-03T20:15:00.000Z",
-  "model_under_test": "claude-sonnet-4-6",
-  "judge_provider": "anthropic",
-  "judge_model": "claude-opus-4-7",
-  "answer_temperature": 0,
-  "judge_temperature": 0,
-  "double_swapped_pairwise": false,
-  "skill_sha256": "abc123",
-  "cases_sha256": "def456",
-  "num_cases": 40,
-  "num_trials_per_condition": 1,
-  "absolute_summary": {},
-  "pairwise_gold_anchored_summary": {},
-  "pairwise_gold_blind_summary": {}
-}
-```
+Any of the following should be treated as a serious negative result:
 
-## Reporting results
+- `skill` beats `baseline` but not `careful_control`.
+- `skill` beats `baseline` but not `constraint_axis_prompting`.
+- `style_matched_baseline` reaches skill-like pass rates without changing the baseline decision.
+- The lift disappears under OpenAI or Gemini rejudging.
+- The lift exists only in the longest answer-length quartile.
+- Held-out cases show materially smaller or reversed lift relative to the in-sample corpus.
 
-Use this format once you have a real run. The summary includes paired analyses with normal-approximation 95% confidence intervals and McNemar-style discordant-pair diagnostics for baseline-vs-skill pass/fail and constraint-failure reduction:
+## Publication checklist
+
+Before making a public claim:
 
 ```text
-Run ID: {runId}
-Model under test: {model}
-Judge provider: {judgeProvider}
-Judge model: {judgeModel}
-Answer temperature: {answer_temperature}
-Judge temperature: {judge_temperature}
-Double-swapped pairwise: {double_swapped_pairwise}
-Cases: {numCases}
-Trials per condition: {trials}
-Skill hash: {skill_sha256}
-Cases hash: {cases_sha256}
-
-Baseline constraint failure rate: X%
-Constraint Enumeration constraint failure rate: Y%
-Reduction: Z percentage points
-
-Baseline pass rate: A%
-Constraint Enumeration pass rate: B%
-
-Gold-anchored pairwise preferred Constraint Enumeration in C% of valid trials.
-Gold-blind pairwise preferred Constraint Enumeration in D% of valid trials.
-Large-margin Constraint Enumeration wins: E%
-Net margin-weighted skill advantage: F
-
-Paired pass-rate delta CI: [L, U]
-Paired constraint-failure reduction CI: [L, U]
-McNemar discordant pairs: b/c
-
-Artifact:
-results/{runId}.summary.json
+1. Freeze SKILL.md and case corpus.
+2. Add an independently authored held-out set via CASE_DIR.
+3. Run at least 3 trials per condition.
+4. Include careful_control, constraint_axis_prompting, constraint_check_no_enumeration, style_matched_baseline, skill, and skill_concise.
+5. Use double-swapped pairwise judging.
+6. Rejudge with at least one non-Anthropic judge; preferably OpenAI and Gemini.
+7. Report bootstrap CIs over case-level paired deltas.
+8. Report gate sensitivity and length-quartile metrics.
+9. Human-audit judge disagreements, baseline wins, style-matched wins, and truncations.
+10. Treat same-vendor-only results as directional.
 ```
-
-## Methodology warning
-
-Do not cite headline lift from the default smoke run. The smoke run only verifies the machinery.
-
-Publishable claims should use:
-
-```text
-larger case sets
-cross-tier or, ideally, cross-family judging
-temperature 0 with trials=1 for deterministic runs OR answer_temperature > 0 with enough trials to average sampling noise
-gold-anchored and gold-blind pairwise agreement
-category-level and behavior-policy rollups
-direct-answer and clarification cases mixed across categories
-paired confidence intervals and discordant-pair diagnostics
-```
-
-Opus-vs-Sonnet judging is cross-tier within Anthropic, not true cross-family judging. Publishable claims should ideally be confirmed with a second judge family.
-
-## Known limitations
-
-This is not a general intelligence benchmark. It measures a specific failure mode:
-
-```text
-Premature answer generation before satisfying the full conjunction of binding constraints.
-```
-
-Known limitations:
-
-```text
-Synthetic test cases
-Same-vendor judge bias even with a higher-capability judge
-Judge outputs can still be imperfect
-Single-shuffle pairwise may have residual position bias unless DOUBLE_SWAPPED_PAIRWISE=true
-Results vary by model, temperature, prompt wording, and case design
-```
-
-Recommended release gates before public benchmark claims:
-
-```text
-Run the same artifact with JUDGE_PROVIDER=openai and compare Anthropic/OpenAI agreement
-Use `npm run rejudge` to rejudge existing answer JSONL with a second judge family without regenerating answers
-Manually audit a random sample of absolute and pairwise judgments
-Use double-swapped pairwise for the headline run if budget allows
-```
-
-Future improvements:
-
-```text
-Human-audited gold set
-Larger case set
-Failure-mode clustering
-zod-to-json-schema to remove schema drift
-OpenAI Chat Completions fallback for non-Responses API models
-```
-
-## Security notes
-
-The API routes should not expose a general-purpose model proxy.
-
-The browser should only send:
-
-```json
-{
-  "caseId": "car_wash_50m",
-  "condition": "skill"
-}
-```
-
-The server controls:
-
-```text
-System prompt
-Model
-Messages
-Max tokens
-Temperature
-Judge prompt
-Case lookup
-```
-
-In production, `EVAL_ADMIN_TOKEN` is required. If it is missing, the API fails closed.
 
 ## License
 

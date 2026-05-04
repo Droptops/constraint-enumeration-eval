@@ -1,0 +1,162 @@
+[
+  {
+    "schema_version": "1.1",
+    "id": "business_1_pricing_decision",
+    "category": "business",
+    "prompt": "Should we raise our product price by 15% this quarter?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Clarify the primary goal, customer price sensitivity, competitive context, and current elasticity data",
+    "acceptable_final_answers": [
+      "Clarify primary objective such as revenue, market share, or profit and review supporting data",
+      "Ask for elasticity, churn risk, competitive position, and margin goals before deciding"
+    ],
+    "observed_facts": [
+      "Considering 15% price increase"
+    ],
+    "hard_constraints": [
+      "Decision must align with defined business objective"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Price change impact depends on unstated goals and market conditions"
+    ],
+    "prohibited_failure_modes": [
+      "Deciding without knowing objective function"
+    ],
+    "not_acceptable_final_answers": [
+      "Raise the price to increase revenue",
+      "Don't change price"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "business_2_hiring_choice",
+    "category": "business",
+    "prompt": "We have two strong candidates for the marketing role. Candidate A has more direct experience, while Candidate B seems stronger on collaboration and working style. Which one should we choose?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Clarify the role priorities, must-have skills, and evidence for collaboration before choosing",
+    "acceptable_final_answers": [
+      "Determine which criteria matter most for this specific role and stage before choosing",
+      "Clarify the business need, required skills, and evidence behind each candidate's strengths"
+    ],
+    "observed_facts": [
+      "Two strong candidates",
+      "Candidate A has more direct experience",
+      "Candidate B appears stronger on collaboration and working style"
+    ],
+    "hard_constraints": [
+      "Hiring decision must serve the actual role requirements",
+      "The answer must not rely on vague fit language alone"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "The tradeoff cannot be resolved without knowing the role priorities"
+    ],
+    "prohibited_failure_modes": [
+      "Choosing based on one factor alone without context",
+      "Treating vague fit as sufficient evidence"
+    ],
+    "not_acceptable_final_answers": [
+      "Pick the one with more experience",
+      "Always choose cultural fit"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "business_3_inventory_order",
+    "category": "business",
+    "prompt": "Our supplier offered a big discount if we order double the usual amount of inventory. Should we take it?",
+    "expected_behavior": "direct_or_clarify_with_assumptions",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Evaluate cash flow, storage costs, demand forecast, and risk of obsolescence before accepting",
+    "acceptable_final_answers": [
+      "Calculate based on holding costs versus discount savings and demand certainty",
+      "Only take the discount if savings exceed storage, capital, spoilage, and demand risk"
+    ],
+    "observed_facts": [
+      "Discount for larger order"
+    ],
+    "hard_constraints": [
+      "Must consider full cost including storage and capital tie-up"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Large order has hidden costs not mentioned in prompt"
+    ],
+    "prohibited_failure_modes": [
+      "Accepting solely because of the discount"
+    ],
+    "not_acceptable_final_answers": [
+      "Take the deal for the discount",
+      "Never order more than usual"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "business_4_marketing_channel",
+    "category": "business",
+    "prompt": "Our last campaign performed poorly. Should we switch advertising platforms?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Diagnose why the campaign performed poorly before deciding whether to switch platforms",
+    "acceptable_final_answers": [
+      "Diagnose why the campaign performed poorly before switching platforms",
+      "Review performance metrics and root cause before deciding whether to switch"
+    ],
+    "observed_facts": [
+      "Last campaign performed poorly"
+    ],
+    "hard_constraints": [
+      "Switch only if data supports better performance elsewhere"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Poor performance cause is unknown"
+    ],
+    "prohibited_failure_modes": [
+      "Switching platforms without root cause analysis"
+    ],
+    "not_acceptable_final_answers": [
+      "Switch to the newest platform",
+      "Double down on current platform"
+    ]
+  },
+  {
+    "schema_version": "1.1",
+    "id": "business_5_partnership",
+    "category": "business",
+    "prompt": "A competitor wants to partner with us on a joint product. Should we agree?",
+    "expected_behavior": "clarify",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "Clarify strategic alignment, IP sharing terms, commercial terms, and long-term competitive impact before agreeing",
+    "acceptable_final_answers": [
+      "Assess strategic fit, IP risk, commercial terms, and competitive impact before agreeing",
+      "Do not agree until partnership terms, risks, and strategic alignment are clear"
+    ],
+    "observed_facts": [
+      "Competitor proposing partnership"
+    ],
+    "hard_constraints": [
+      "Partnership must not harm competitive position"
+    ],
+    "soft_preferences": [],
+    "required_inference": [
+      "Partnership has both risks and benefits requiring details"
+    ],
+    "prohibited_failure_modes": [
+      "Agreeing without full terms review",
+      "Rejecting out of hand"
+    ],
+    "not_acceptable_final_answers": [
+      "Partner up immediately",
+      "Never partner with competitors"
+    ]
+  }
+]

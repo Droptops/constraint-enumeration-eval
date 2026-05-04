@@ -1,7 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const CASE_DIR = path.join(process.cwd(), "cases");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEFAULT_CASE_DIR = path.resolve(__dirname, "../cases");
+
+const EXPECTED_BEHAVIORS = ["direct_answer", "clarify", "direct_or_clarify_with_assumptions"];
 
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -17,7 +22,9 @@ function validateBooleanField(testCase, sourceFile, fieldName) {
   }
 }
 
-function validateStringArray(testCase, sourceFile, fieldName, { allowEmpty = true } = {}) {
+function validateStringArray(testCase, sourceFile, fieldName, { allowEmpty = true, required = true } = {}) {
+  if (testCase[fieldName] === undefined && !required) return;
+
   if (!Array.isArray(testCase[fieldName])) {
     throw new Error(`${sourceFile}:${testCase.id} must have ${fieldName} array.`);
   }
@@ -33,9 +40,16 @@ function validateStringArray(testCase, sourceFile, fieldName, { allowEmpty = tru
   }
 }
 
+function inferExpectedBehavior(testCase) {
+  if (testCase.expected_behavior) return testCase.expected_behavior;
+  if (testCase.clarification_expected === true) return "clarify";
+  if (testCase.requires_direct_answer === true) return "direct_answer";
+  return "direct_or_clarify_with_assumptions";
+}
+
 function validateCase(testCase, sourceFile) {
-  if (testCase.schema_version !== "1.0") {
-    throw new Error(`${sourceFile}:${testCase.id || "unknown"} must have schema_version "1.0".`);
+  if (!["1.0", "1.1"].includes(testCase.schema_version)) {
+    throw new Error(`${sourceFile}:${testCase.id || "unknown"} must have schema_version "1.0" or "1.1".`);
   }
 
   if (!isNonEmptyString(testCase.id)) {
@@ -67,43 +81,77 @@ function validateCase(testCase, sourceFile) {
     );
   }
 
-  validateStringArray(testCase, sourceFile, "binding_constraints", { allowEmpty: false });
-
-  if (testCase.soft_constraints !== undefined) {
-    validateStringArray(testCase, sourceFile, "soft_constraints", { allowEmpty: true });
+  if (!EXPECTED_BEHAVIORS.includes(inferExpectedBehavior(testCase))) {
+    throw new Error(
+      `${sourceFile}:${testCase.id} expected_behavior must be one of: ${EXPECTED_BEHAVIORS.join(", ")}.`
+    );
   }
 
-  if (testCase.common_failure_modes !== undefined) {
-    validateStringArray(testCase, sourceFile, "common_failure_modes", { allowEmpty: true });
+  if (testCase.schema_version === "1.1") {
+    validateStringArray(testCase, sourceFile, "observed_facts", { allowEmpty: true });
+    validateStringArray(testCase, sourceFile, "hard_constraints", { allowEmpty: false });
+    validateStringArray(testCase, sourceFile, "soft_preferences", { allowEmpty: true });
+    validateStringArray(testCase, sourceFile, "required_inference", { allowEmpty: true });
+    validateStringArray(testCase, sourceFile, "prohibited_failure_modes", { allowEmpty: true });
+  } else {
+    validateStringArray(testCase, sourceFile, "binding_constraints", { allowEmpty: false });
+    validateStringArray(testCase, sourceFile, "soft_constraints", { allowEmpty: true, required: false });
+    validateStringArray(testCase, sourceFile, "common_failure_modes", { allowEmpty: true, required: false });
   }
 
   if (testCase.acceptable_final_answers !== undefined) {
     validateStringArray(testCase, sourceFile, "acceptable_final_answers", { allowEmpty: false });
+  }
+
+  if (testCase.not_acceptable_final_answers !== undefined) {
+    validateStringArray(testCase, sourceFile, "not_acceptable_final_answers", { allowEmpty: false });
   }
 }
 
 function normalizeCase(testCase, sourceFile) {
   validateCase(testCase, sourceFile);
 
+  const observedFacts = testCase.observed_facts || [];
+  const hardConstraints = testCase.hard_constraints || testCase.binding_constraints || [];
+  const softPreferences = testCase.soft_preferences || testCase.soft_constraints || [];
+  const requiredInference = testCase.required_inference || [];
+  const prohibitedFailureModes = testCase.prohibited_failure_modes || testCase.common_failure_modes || [];
+  const expectedBehavior = inferExpectedBehavior(testCase);
+
   return {
     ...testCase,
+    expected_behavior: expectedBehavior,
     acceptable_final_answers: testCase.acceptable_final_answers || [testCase.expected_final_answer],
-    soft_constraints: testCase.soft_constraints || [],
-    common_failure_modes: testCase.common_failure_modes || [],
+    not_acceptable_final_answers: testCase.not_acceptable_final_answers || [],
+    observed_facts: observedFacts,
+    hard_constraints: hardConstraints,
+    soft_preferences: softPreferences,
+    required_inference: requiredInference,
+    prohibited_failure_modes: prohibitedFailureModes,
+    // Compatibility aliases used by older metrics/result readers.
+    binding_constraints: hardConstraints,
+    soft_constraints: softPreferences,
+    common_failure_modes: prohibitedFailureModes,
     source_file: sourceFile
   };
 }
 
+function getCaseDir() {
+  return process.env.CASE_DIR ? path.resolve(process.cwd(), process.env.CASE_DIR) : DEFAULT_CASE_DIR;
+}
+
 export function loadAllCases() {
-  if (!fs.existsSync(CASE_DIR)) {
-    throw new Error("cases directory not found.");
+  const caseDir = getCaseDir();
+
+  if (!fs.existsSync(caseDir)) {
+    throw new Error(`cases directory not found: ${caseDir}`);
   }
 
-  const files = fs.readdirSync(CASE_DIR).filter(file => file.endsWith(".json")).sort();
+  const files = fs.readdirSync(caseDir).filter(file => file.endsWith(".json")).sort();
   const cases = [];
 
   for (const file of files) {
-    const fullPath = path.join(CASE_DIR, file);
+    const fullPath = path.join(caseDir, file);
     const parsed = JSON.parse(fs.readFileSync(fullPath, "utf8"));
 
     if (!Array.isArray(parsed)) {
