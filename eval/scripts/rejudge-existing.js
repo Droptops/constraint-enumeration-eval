@@ -18,6 +18,7 @@ import {
 } from "../lib/jsonl.js";
 import {
   getDoubleSwappedPairwise,
+  getPairwiseComparisons,
   getJudgeModel,
   getJudgeProvider,
   getJudgeTemperature
@@ -58,6 +59,8 @@ const sourceModelUnderTest = sourceSummary?.model_under_test || sourceRunConfig?
 const sourceAnswerTemperature = sourceSummary?.answer_temperature ?? sourceRunConfig?.answer_temperature ?? null;
 const sourceEvaluatedCaseIds = sourceSummary?.evaluated_case_ids || [...new Set(source.records.map(record => record.caseId))];
 
+const pairwiseComparisons = getPairwiseComparisons();
+
 const rejudgeConfig = {
   rejudge_only: true,
   source_run_id: sourceRunId,
@@ -66,7 +69,8 @@ const rejudgeConfig = {
   judge_model: getJudgeModel(),
   judge_temperature: getJudgeTemperature(),
   double_swapped_pairwise: getDoubleSwappedPairwise(),
-  pairwise_seed_run_id: sourceRunId
+  pairwise_seed_run_id: sourceRunId,
+  pairwise_comparisons: pairwiseComparisons
 };
 const rejudgeConfigHash = sha256(stableJson(rejudgeConfig));
 
@@ -138,7 +142,7 @@ for (const record of source.records) {
 }
 
 const byKey = new Map(rejudgedResults.map(result => [resultKey(result), result]));
-const positionOrders = getDoubleSwappedPairwise() ? ["skill_a", "baseline_a"] : ["seeded"];
+const positionOrders = getDoubleSwappedPairwise() ? ["left_a", "right_a"] : ["seeded"];
 const pairwiseSummaries = {};
 const pairwiseFiles = {};
 const skippedBadPairwiseLines = {};
@@ -167,50 +171,63 @@ for (const mode of PAIRWISE_MODES) {
     );
 
     for (const trial of trials) {
-      const baseline = byKey.get(resultKey({ caseId: testCase.id, condition: "baseline", trial }));
-      const skill = byKey.get(resultKey({ caseId: testCase.id, condition: "skill", trial }));
+      for (const comparison of pairwiseComparisons) {
+        const left = byKey.get(resultKey({ caseId: testCase.id, condition: comparison.left_condition, trial }));
+        const right = byKey.get(resultKey({ caseId: testCase.id, condition: comparison.right_condition, trial }));
 
-      if (!baseline || !skill) continue;
+        if (!left || !right) continue;
 
-      for (const positionOrder of positionOrders) {
-        const key = pairwiseKey({ caseId: testCase.id, trial, position_order: positionOrder });
+        for (const positionOrder of positionOrders) {
+          const key = pairwiseKey({
+            caseId: testCase.id,
+            trial,
+            position_order: positionOrder,
+            left_condition: comparison.left_condition,
+            right_condition: comparison.right_condition
+          });
 
-        if (completedPairwise.has(key)) {
-          console.log(`Skipping completed ${mode} pairwise rejudge: ${key}`);
-          continue;
+          if (completedPairwise.has(key)) {
+            console.log(`Skipping completed ${mode} pairwise rejudge: ${key}`);
+            continue;
+          }
+
+          const pairwise = await judgePairwise({
+            testCase,
+            leftAnswer: left.answer,
+            rightAnswer: right.answer,
+            leftCondition: comparison.left_condition,
+            rightCondition: comparison.right_condition,
+            seedRunId: sourceRunId,
+            trial,
+            mode,
+            positionOrder
+          });
+
+          const pairwiseResult = {
+            caseId: testCase.id,
+            category: testCase.category,
+            trial,
+            mode,
+            comparison_id: comparison.comparison_id,
+            left_condition: comparison.left_condition,
+            right_condition: comparison.right_condition,
+            position_order: positionOrder,
+            pairwise_seed_run_id: sourceRunId,
+            requires_direct_answer: testCase.requires_direct_answer,
+            clarification_expected: testCase.clarification_expected,
+            skill_sha256: skillHash,
+            cases_sha256: casesHash,
+            run_config_sha256: rejudgeConfigHash,
+            rejudge_config_sha256: rejudgeConfigHash,
+            source_run_config_sha256: sourceRunConfigHash,
+            pairwise,
+            winner_condition: pairwise.winner_condition
+          };
+
+          appendJsonl(pairwisePath, pairwiseResult);
+          completedPairwise.add(key);
+          pairwiseResults.push(pairwiseResult);
         }
-
-        const pairwise = await judgePairwise({
-          testCase,
-          baselineAnswer: baseline.answer,
-          skillAnswer: skill.answer,
-          seedRunId: sourceRunId,
-          trial,
-          mode,
-          positionOrder
-        });
-
-        const pairwiseResult = {
-          caseId: testCase.id,
-          category: testCase.category,
-          trial,
-          mode,
-          position_order: positionOrder,
-          pairwise_seed_run_id: sourceRunId,
-          requires_direct_answer: testCase.requires_direct_answer,
-          clarification_expected: testCase.clarification_expected,
-          skill_sha256: skillHash,
-          cases_sha256: casesHash,
-          run_config_sha256: rejudgeConfigHash,
-          rejudge_config_sha256: rejudgeConfigHash,
-          source_run_config_sha256: sourceRunConfigHash,
-          pairwise,
-          winner_condition: pairwise.winner_condition
-        };
-
-        appendJsonl(pairwisePath, pairwiseResult);
-        completedPairwise.add(key);
-        pairwiseResults.push(pairwiseResult);
       }
     }
   }
@@ -231,6 +248,7 @@ const artifact = {
   judge_temperature: getJudgeTemperature(),
   double_swapped_pairwise: getDoubleSwappedPairwise(),
   pairwise_seed_run_id: sourceRunId,
+  pairwise_comparisons: pairwiseComparisons,
   skill_sha256: skillHash,
   cases_sha256: casesHash,
   source_run_config_sha256: sourceRunConfigHash,

@@ -34,8 +34,14 @@ export function resultKey({ caseId, condition, trial }) {
   return `${caseId}:${condition}:${trial}`;
 }
 
-export function pairwiseKey({ caseId, trial, position_order = "seeded" }) {
-  return `${caseId}:pairwise:${trial}:${position_order}`;
+export function pairwiseKey({
+  caseId,
+  trial,
+  position_order = "seeded",
+  left_condition = "skill",
+  right_condition = "baseline"
+}) {
+  return `${caseId}:pairwise:${left_condition}_vs_${right_condition}:${trial}:${position_order}`;
 }
 
 export function loadCompletedResults(jsonlPath, keyFn) {

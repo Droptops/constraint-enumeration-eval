@@ -10,4 +10,3 @@ coverage/
 eval/results/*.json
 eval/results/*.jsonl
 eval/SKILL.md
-.claude/

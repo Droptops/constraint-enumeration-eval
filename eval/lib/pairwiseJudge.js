@@ -4,7 +4,7 @@ import { getJudgeTemperature } from "./config.js";
 import { seededBoolean } from "./seededRandom.js";
 
 export const PAIRWISE_MODES = ["gold_anchored", "gold_blind"];
-export const POSITION_ORDERS = ["seeded", "skill_a", "baseline_a"];
+export const POSITION_ORDERS = ["seeded", "left_a", "right_a", "skill_a", "baseline_a"];
 
 export const PairwiseJudgeSchema = z
   .object({
@@ -77,33 +77,49 @@ export const pairwiseOutputConfig = {
   }
 };
 
-export function assignPair({ baselineAnswer, skillAnswer, seedRunId, caseId, trial, mode, positionOrder }) {
+export function assignPair({
+  leftAnswer,
+  rightAnswer,
+  leftCondition = "skill",
+  rightCondition = "baseline",
+  seedRunId,
+  caseId,
+  trial,
+  mode,
+  positionOrder
+}) {
   if (!POSITION_ORDERS.includes(positionOrder)) {
     throw new Error(`Invalid positionOrder: ${positionOrder}`);
   }
 
-  const seed = `${seedRunId}:${caseId}:${trial}:${mode}:${positionOrder}:pairwise-order`;
-  const skillIsA =
-    positionOrder === "skill_a" ? true : positionOrder === "baseline_a" ? false : seededBoolean(seed);
+  // Legacy aliases keep old runs/scripts readable. New double-swap runs use left_a/right_a.
+  const normalizedPositionOrder =
+    positionOrder === "skill_a" ? "left_a" : positionOrder === "baseline_a" ? "right_a" : positionOrder;
 
-  if (skillIsA) {
+  const seed = `${seedRunId}:${caseId}:${trial}:${mode}:${leftCondition}_vs_${rightCondition}:${positionOrder}:pairwise-order`;
+  const leftIsA =
+    normalizedPositionOrder === "left_a" ? true : normalizedPositionOrder === "right_a" ? false : seededBoolean(seed);
+
+  if (leftIsA) {
     return {
       seed,
       position_order: positionOrder,
-      answerA: skillAnswer,
-      answerB: baselineAnswer,
-      answer_a_condition: "skill",
-      answer_b_condition: "baseline"
+      comparison_id: `${leftCondition}_vs_${rightCondition}`,
+      answerA: leftAnswer,
+      answerB: rightAnswer,
+      answer_a_condition: leftCondition,
+      answer_b_condition: rightCondition
     };
   }
 
   return {
     seed,
     position_order: positionOrder,
-    answerA: baselineAnswer,
-    answerB: skillAnswer,
-    answer_a_condition: "baseline",
-    answer_b_condition: "skill"
+    comparison_id: `${leftCondition}_vs_${rightCondition}`,
+    answerA: rightAnswer,
+    answerB: leftAnswer,
+    answer_a_condition: rightCondition,
+    answer_b_condition: leftCondition
   };
 }
 
@@ -196,6 +212,10 @@ export async function judgePairwise({
   testCase,
   baselineAnswer,
   skillAnswer,
+  leftAnswer,
+  rightAnswer,
+  leftCondition = "skill",
+  rightCondition = "baseline",
   seedRunId,
   trial,
   mode = "gold_anchored",
@@ -205,9 +225,18 @@ export async function judgePairwise({
     throw new Error(`Invalid pairwise mode: ${mode}`);
   }
 
+  const resolvedLeftAnswer = leftAnswer ?? skillAnswer;
+  const resolvedRightAnswer = rightAnswer ?? baselineAnswer;
+
+  if (!resolvedLeftAnswer || !resolvedRightAnswer) {
+    throw new Error("judgePairwise requires leftAnswer/rightAnswer or legacy skillAnswer/baselineAnswer.");
+  }
+
   const blinded = assignPair({
-    baselineAnswer,
-    skillAnswer,
+    leftAnswer: resolvedLeftAnswer,
+    rightAnswer: resolvedRightAnswer,
+    leftCondition,
+    rightCondition,
     seedRunId,
     caseId: testCase.id,
     trial,
@@ -237,6 +266,7 @@ export async function judgePairwise({
       mode,
       position_order: blinded.position_order,
       seed: blinded.seed,
+      comparison_id: blinded.comparison_id,
       answer_a_condition: blinded.answer_a_condition,
       answer_b_condition: blinded.answer_b_condition,
       winner_condition: null,
@@ -263,6 +293,7 @@ export async function judgePairwise({
       mode,
       position_order: blinded.position_order,
       seed: blinded.seed,
+      comparison_id: blinded.comparison_id,
       answer_a_condition: blinded.answer_a_condition,
       answer_b_condition: blinded.answer_b_condition,
       winner_condition: winnerCondition,
@@ -276,6 +307,7 @@ export async function judgePairwise({
       mode,
       position_order: blinded.position_order,
       seed: blinded.seed,
+      comparison_id: blinded.comparison_id,
       answer_a_condition: blinded.answer_a_condition,
       answer_b_condition: blinded.answer_b_condition,
       winner_condition: null,

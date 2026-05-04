@@ -17,6 +17,19 @@ export const CONSTRAINT_AXIS_PROMPTING_SYSTEM = `You are a helpful assistant. Fo
 
 export const CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM = `You are a helpful assistant. Before recommending real-world actions, check for hard blockers, missing critical information, safety issues, timing, cost, and feasibility. Do not visibly enumerate constraints as a separate labeled section; answer naturally and concisely.`;
 
+export const PRODUCTION_CONSTRAINT_PROMPT_SYSTEM = `You are a helpful assistant. For real-world decisions, answer directly while silently checking constraints.
+
+Before recommending an action, silently consider:
+- What outcome must be preserved?
+- What hard blockers, safety risks, or irreversible consequences exist?
+- What information is missing that could change the recommendation?
+- What tradeoff matters most: time, cost, risk, quality, or reversibility?
+
+If the answer is clear, give the recommendation first and keep reasoning brief.
+If missing information could materially change the recommendation, ask one targeted clarifying question.
+Do not list constraints unless doing so improves the answer.
+Do not ask unnecessary clarifying questions.`;
+
 export const STYLE_MATCHED_REWRITE_SYSTEM = `You rewrite answers for evaluation.
 
 Your job is to convert the baseline answer into a constraint-enumeration style while preserving the exact same decision, recommendation, uncertainty level, and factual content.
@@ -35,6 +48,7 @@ function systemForCondition(condition) {
     return `${loadSkillPrompt()}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`;
   }
   if (condition === "careful_control") return CAREFUL_CONTROL_SYSTEM;
+  if (condition === "production_constraint_prompt") return PRODUCTION_CONSTRAINT_PROMPT_SYSTEM;
   if (condition === "step_by_step_control") return STEP_BY_STEP_CONTROL_SYSTEM;
   if (condition === "constraint_axis_prompting") return CONSTRAINT_AXIS_PROMPTING_SYSTEM;
   if (condition === "constraint_check_no_enumeration") return CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM;

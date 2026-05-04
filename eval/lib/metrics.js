@@ -1,3 +1,4 @@
+import { getPrimaryCondition } from "./config.js";
 import { GATE_VARIANTS } from "./score.js";
 
 export function summarizeResults(results) {
@@ -18,17 +19,26 @@ function summarizeResultsGroup(results) {
 
   const baseline = conditions.baseline || summarizeCondition([]);
   const skill = conditions.skill || summarizeCondition([]);
+  const primaryCondition = getPrimaryCondition();
+  const primary = conditions[primaryCondition] || summarizeCondition([]);
+  const pairedPrimaryBaseline = summarizePairedConditionDelta(results, "baseline", primaryCondition);
 
   return {
     conditions,
     baseline,
     skill,
+    primary_condition: primaryCondition,
+    primary,
     careful_control: conditions.careful_control || null,
     lift: computeLift(baseline, skill),
+    primary_lift_vs_baseline: computeLift(baseline, primary),
     gate_sensitivity: summarizeGateSensitivity(results),
-    paired_analysis: summarizePairedBaselineSkill(results),
+    paired_condition_deltas: summarizeAllPairedConditionDeltas(results),
+    paired_delta_summary: pairedPrimaryBaseline,
+    paired_analysis: pairedPrimaryBaseline,
+    paired_baseline_vs_skill: summarizePairedConditionDelta(results, "baseline", "skill"),
     paired_skill_vs_careful_control:
-      conditions.careful_control ? summarizePairedSkillCarefulControl(results) : null
+      conditions.careful_control ? summarizePairedConditionDelta(results, "careful_control", "skill") : null
   };
 }
 
@@ -102,6 +112,7 @@ function computeLift(baseline, skill) {
 function summarizeGateSensitivity(results) {
   const variants = Object.keys(GATE_VARIANTS);
   const byCondition = groupBy(results, result => result.condition);
+  const primaryCondition = getPrimaryCondition();
 
   const conditionSummaries = Object.fromEntries(
     Object.entries(byCondition)
@@ -122,9 +133,23 @@ function summarizeGateSensitivity(results) {
       })
   );
 
+  const conditions = Object.keys(byCondition).sort();
+  const primaryMinusAllConditions = Object.fromEntries(
+    conditions
+      .filter(condition => condition !== primaryCondition)
+      .map(condition => [`${primaryCondition}_minus_${condition}`, summarizeVariantDeltas(results, condition, primaryCondition)])
+  );
+
   return {
     note: "Sensitivity table for alternate pass gates. Default pass uses v31_decision_quality_default, which drops the subjective implicit-consideration gate.",
+    primary_condition: primaryCondition,
     conditions: conditionSummaries,
+    primary_minus_all_conditions: primaryMinusAllConditions,
+    primary_minus_baseline: summarizeVariantDeltas(results, "baseline", primaryCondition),
+    primary_minus_careful_control: summarizeVariantDeltas(results, "careful_control", primaryCondition),
+    primary_minus_constraint_axis_prompting: summarizeVariantDeltas(results, "constraint_axis_prompting", primaryCondition),
+    primary_minus_style_matched_baseline: summarizeVariantDeltas(results, "style_matched_baseline", primaryCondition),
+    primary_minus_skill: primaryCondition === "skill" ? null : summarizeVariantDeltas(results, "skill", primaryCondition),
     skill_minus_baseline: summarizeVariantDeltas(results, "baseline", "skill"),
     skill_minus_careful_control: summarizeVariantDeltas(results, "careful_control", "skill")
   };
@@ -143,60 +168,100 @@ function summarizeVariantDeltas(results, leftCondition, rightCondition) {
   );
 }
 
-function summarizePairedBaselineSkill(results) {
-  const pairs = buildConditionPairs(results, "baseline", "skill");
+function summarizePairedConditionDelta(results, leftCondition, rightCondition) {
+  const pairs = buildConditionPairs(results, leftCondition, rightCondition);
 
   return {
     pairs: pairs.length,
+    comparison_id: `${leftCondition}_vs_${rightCondition}`,
+    left_condition: leftCondition,
+    right_condition: rightCondition,
     pass: summarizePairedBinary({
       pairs,
       leftFn: pair => pair.left.score.pass === true,
       rightFn: pair => pair.right.score.pass === true,
-      deltaDirection: "skill_minus_baseline",
+      deltaDirection: `${rightCondition}_minus_${leftCondition}`,
       subtract: "right_minus_left",
-      positiveDeltaMeaning: "Skill has a higher pass rate than baseline."
+      positiveDeltaMeaning: `${rightCondition} has a higher pass rate than ${leftCondition}.`
     }),
     constraint_failure_reduction: summarizePairedBinary({
       pairs,
       leftFn: pair => pair.left.score.constraint_failure === true,
       rightFn: pair => pair.right.score.constraint_failure === true,
-      deltaDirection: "baseline_minus_skill",
+      deltaDirection: `${leftCondition}_minus_${rightCondition}`,
       subtract: "left_minus_right",
-      positiveDeltaMeaning: "Skill has a lower constraint-failure rate than baseline."
-    })
-  };
-}
-
-function summarizePairedSkillCarefulControl(results) {
-  const pairs = buildConditionPairs(results, "careful_control", "skill");
-
-  return {
-    pairs: pairs.length,
-    pass: summarizePairedBinary({
-      pairs,
-      leftFn: pair => pair.left.score.pass === true,
-      rightFn: pair => pair.right.score.pass === true,
-      deltaDirection: "skill_minus_careful_control",
-      subtract: "right_minus_left",
-      positiveDeltaMeaning: "Skill has a higher pass rate than careful_control."
+      positiveDeltaMeaning: `${rightCondition} has a lower constraint-failure rate than ${leftCondition}.`
     }),
-    constraint_failure_reduction: summarizePairedBinary({
+    hard_constraint_violation_reduction: summarizePairedBinary({
       pairs,
-      leftFn: pair => pair.left.score.constraint_failure === true,
-      rightFn: pair => pair.right.score.constraint_failure === true,
-      deltaDirection: "careful_control_minus_skill",
+      leftFn: pair => pair.left.score.fields?.violates_hard_constraint === true,
+      rightFn: pair => pair.right.score.fields?.violates_hard_constraint === true,
+      deltaDirection: `${leftCondition}_minus_${rightCondition}`,
       subtract: "left_minus_right",
-      positiveDeltaMeaning: "Skill has a lower constraint-failure rate than careful_control."
+      positiveDeltaMeaning: `${rightCondition} has a lower hard-constraint violation rate than ${leftCondition}.`
+    }),
+    unnecessary_clarification_reduction: summarizePairedBinary({
+      pairs,
+      leftFn: pair => pair.left.score.fields?.asks_unnecessary_clarification === true,
+      rightFn: pair => pair.right.score.fields?.asks_unnecessary_clarification === true,
+      deltaDirection: `${leftCondition}_minus_${rightCondition}`,
+      subtract: "left_minus_right",
+      positiveDeltaMeaning: `${rightCondition} has a lower unnecessary-clarification rate than ${leftCondition}.`
     }),
     constraint_application: summarizePairedBinary({
       pairs,
       leftFn: pair => pair.left.score.fields?.applies_constraints_correctly === true,
       rightFn: pair => pair.right.score.fields?.applies_constraints_correctly === true,
-      deltaDirection: "skill_minus_careful_control",
+      deltaDirection: `${rightCondition}_minus_${leftCondition}`,
       subtract: "right_minus_left",
-      positiveDeltaMeaning: "Skill has a higher constraint-application rate than careful_control."
+      positiveDeltaMeaning: `${rightCondition} has a higher constraint-application rate than ${leftCondition}.`
     })
   };
+}
+
+
+function summarizeAllPairedConditionDeltas(results) {
+  const conditions = [...new Set(results.map(result => result.condition))].sort();
+  const output = {};
+
+  for (let i = 0; i < conditions.length; i++) {
+    for (let j = 0; j < conditions.length; j++) {
+      if (i === j) continue;
+      const leftCondition = conditions[i];
+      const rightCondition = conditions[j];
+      const pairs = buildConditionPairs(results, leftCondition, rightCondition);
+      if (pairs.length === 0) continue;
+
+      output[`${rightCondition}_minus_${leftCondition}`] = {
+        pass: summarizePairedBinary({
+          pairs,
+          leftFn: pair => pair.left.score.pass === true,
+          rightFn: pair => pair.right.score.pass === true,
+          deltaDirection: `${rightCondition}_minus_${leftCondition}`,
+          subtract: "right_minus_left",
+          positiveDeltaMeaning: `${rightCondition} has a higher pass rate than ${leftCondition}.`
+        }),
+        hard_constraint_violation_reduction: summarizePairedBinary({
+          pairs,
+          leftFn: pair => pair.left.score.fields?.violates_hard_constraint === true,
+          rightFn: pair => pair.right.score.fields?.violates_hard_constraint === true,
+          deltaDirection: `${leftCondition}_minus_${rightCondition}`,
+          subtract: "left_minus_right",
+          positiveDeltaMeaning: `${rightCondition} has a lower hard-constraint violation rate than ${leftCondition}.`
+        }),
+        unnecessary_clarification_reduction: summarizePairedBinary({
+          pairs,
+          leftFn: pair => pair.left.score.fields?.asks_unnecessary_clarification === true,
+          rightFn: pair => pair.right.score.fields?.asks_unnecessary_clarification === true,
+          deltaDirection: `${leftCondition}_minus_${rightCondition}`,
+          subtract: "left_minus_right",
+          positiveDeltaMeaning: `${rightCondition} has a lower unnecessary-clarification rate than ${leftCondition}.`
+        })
+      };
+    }
+  }
+
+  return output;
 }
 
 function buildConditionPairs(results, leftCondition, rightCondition) {
@@ -384,6 +449,7 @@ export function marginWeight(margin) {
 export function summarizePairwise(pairwiseResults) {
   return {
     global: summarizePairwiseGroup(pairwiseResults),
+    by_comparison: summarizeBy(pairwiseResults, comparisonKey, summarizePairwiseGroup),
     by_category: summarizeBy(pairwiseResults, result => result.category || "uncategorized", summarizePairwiseGroup),
     by_behavior_policy: summarizeBy(pairwiseResults, behaviorPolicyKey, summarizePairwiseGroup)
   };
@@ -393,60 +459,84 @@ function summarizePairwiseGroup(pairwiseResults) {
   const total = pairwiseResults.length;
 
   if (total === 0) {
-    return emptyPairwiseSummary(0, 0, null);
+    return emptyPairwiseSummary(0, 0, null, null, null);
   }
 
   const valid = pairwiseResults.filter(r => r.pairwise?.valid_pairwise_response === true);
   const validTotal = valid.length;
   const count = predicate => pairwiseResults.filter(predicate).length;
   const validCount = predicate => valid.filter(predicate).length;
+  const leftCondition = inferSingleValue(pairwiseResults, r => r.left_condition || "skill");
+  const rightCondition = inferSingleValue(pairwiseResults, r => r.right_condition || "baseline");
 
   if (validTotal === 0) {
     return emptyPairwiseSummary(
       total,
       0,
-      count(r => r.pairwise?.valid_pairwise_response !== true) / total
+      count(r => r.pairwise?.valid_pairwise_response !== true) / total,
+      leftCondition,
+      rightCondition
     );
   }
 
-  const skillWeighted = valid.reduce((sum, r) => {
-    if (r.winner_condition !== "skill") return sum;
+  const leftWeighted = valid.reduce((sum, r) => {
+    if (r.winner_condition !== (r.left_condition || leftCondition)) return sum;
     return sum + marginWeight(r.pairwise.parsed.margin);
   }, 0);
 
-  const baselineWeighted = valid.reduce((sum, r) => {
-    if (r.winner_condition !== "baseline") return sum;
+  const rightWeighted = valid.reduce((sum, r) => {
+    if (r.winner_condition !== (r.right_condition || rightCondition)) return sum;
     return sum + marginWeight(r.pairwise.parsed.margin);
   }, 0);
 
-  return {
+  const summary = {
     total,
     valid_total: validTotal,
-    skill_win_rate: validCount(r => r.winner_condition === "skill") / validTotal,
-    baseline_win_rate: validCount(r => r.winner_condition === "baseline") / validTotal,
+    comparison_id: leftCondition && rightCondition ? `${leftCondition}_vs_${rightCondition}` : "mixed",
+    left_condition: leftCondition,
+    right_condition: rightCondition,
+    left_win_rate: validCount(r => r.winner_condition === (r.left_condition || leftCondition)) / validTotal,
+    right_win_rate: validCount(r => r.winner_condition === (r.right_condition || rightCondition)) / validTotal,
     tie_rate: validCount(r => r.winner_condition === "tie") / validTotal,
     invalid_pairwise_rate: count(r => r.pairwise?.valid_pairwise_response !== true) / total,
     margin_weighted_metrics_note: "Diagnostic only; large=1.0, medium=0.66, small=0.33, tie=0 are uncalibrated convenience weights. Use win/loss/tie rates for headline claims.",
-    skill_margin_weighted_score: skillWeighted / validTotal,
-    baseline_margin_weighted_score: baselineWeighted / validTotal,
-    net_margin_weighted_skill_advantage: (skillWeighted - baselineWeighted) / validTotal,
-    large_margin_skill_win_rate:
-      validCount(r => r.winner_condition === "skill" && r.pairwise.parsed.margin === "large") / validTotal,
-    large_margin_baseline_win_rate:
-      validCount(r => r.winner_condition === "baseline" && r.pairwise.parsed.margin === "large") / validTotal,
+    left_margin_weighted_score: leftWeighted / validTotal,
+    right_margin_weighted_score: rightWeighted / validTotal,
+    net_margin_weighted_left_advantage: (leftWeighted - rightWeighted) / validTotal,
+    large_margin_left_win_rate:
+      validCount(r => r.winner_condition === (r.left_condition || leftCondition) && r.pairwise.parsed.margin === "large") / validTotal,
+    large_margin_right_win_rate:
+      validCount(r => r.winner_condition === (r.right_condition || rightCondition) && r.pairwise.parsed.margin === "large") / validTotal,
     ...summarizeDoubleSwaps(valid)
   };
+
+  // Backward-compatible field names for old dashboards and README snippets.
+  summary.skill_win_rate = validCount(r => r.winner_condition === "skill") / validTotal;
+  summary.baseline_win_rate = validCount(r => r.winner_condition === "baseline") / validTotal;
+  summary.skill_margin_weighted_score = valid.reduce((sum, r) => {
+    if (r.winner_condition !== "skill") return sum;
+    return sum + marginWeight(r.pairwise.parsed.margin);
+  }, 0) / validTotal;
+  summary.baseline_margin_weighted_score = valid.reduce((sum, r) => {
+    if (r.winner_condition !== "baseline") return sum;
+    return sum + marginWeight(r.pairwise.parsed.margin);
+  }, 0) / validTotal;
+  summary.net_margin_weighted_skill_advantage = summary.skill_margin_weighted_score - summary.baseline_margin_weighted_score;
+  summary.large_margin_skill_win_rate = validCount(r => r.winner_condition === "skill" && r.pairwise.parsed.margin === "large") / validTotal;
+  summary.large_margin_baseline_win_rate = validCount(r => r.winner_condition === "baseline" && r.pairwise.parsed.margin === "large") / validTotal;
+
+  return summary;
 }
 
 function summarizeDoubleSwaps(validResults) {
   const groups = groupBy(
-    validResults.filter(r => ["skill_a", "baseline_a"].includes(r.position_order)),
-    r => `${r.caseId}:${r.trial}`
+    validResults.filter(r => ["left_a", "right_a", "skill_a", "baseline_a"].includes(r.position_order)),
+    r => `${comparisonKey(r)}:${r.caseId}:${r.trial}`
   );
 
   const completeGroups = Object.values(groups).filter(group => {
-    const orders = new Set(group.map(r => r.position_order));
-    return orders.has("skill_a") && orders.has("baseline_a");
+    const orders = new Set(group.map(r => normalizePositionOrder(r.position_order)));
+    return orders.has("left_a") && orders.has("right_a");
   });
 
   const total = completeGroups.length;
@@ -455,24 +545,32 @@ function summarizeDoubleSwaps(validResults) {
     return {
       double_swap_pairs: 0,
       position_agreement_rate: null,
+      left_wins_both_positions_rate: null,
+      right_wins_both_positions_rate: null,
+      split_decision_rate: null,
       skill_wins_both_positions_rate: null,
-      baseline_wins_both_positions_rate: null,
-      split_decision_rate: null
+      baseline_wins_both_positions_rate: null
     };
   }
 
   let agreements = 0;
+  let leftBoth = 0;
+  let rightBoth = 0;
   let skillBoth = 0;
   let baselineBoth = 0;
   let splits = 0;
 
   for (const group of completeGroups) {
-    const skillA = group.find(r => r.position_order === "skill_a");
-    const baselineA = group.find(r => r.position_order === "baseline_a");
-    const winners = [skillA?.winner_condition, baselineA?.winner_condition];
+    const leftA = group.find(r => normalizePositionOrder(r.position_order) === "left_a");
+    const rightA = group.find(r => normalizePositionOrder(r.position_order) === "right_a");
+    const winners = [leftA?.winner_condition, rightA?.winner_condition];
+    const leftCondition = leftA?.left_condition || rightA?.left_condition || "skill";
+    const rightCondition = leftA?.right_condition || rightA?.right_condition || "baseline";
 
     if (winners[0] === winners[1]) {
       agreements++;
+      if (winners[0] === leftCondition) leftBoth++;
+      if (winners[0] === rightCondition) rightBoth++;
       if (winners[0] === "skill") skillBoth++;
       if (winners[0] === "baseline") baselineBoth++;
     } else {
@@ -483,32 +581,61 @@ function summarizeDoubleSwaps(validResults) {
   return {
     double_swap_pairs: total,
     position_agreement_rate: agreements / total,
+    left_wins_both_positions_rate: leftBoth / total,
+    right_wins_both_positions_rate: rightBoth / total,
+    split_decision_rate: splits / total,
     skill_wins_both_positions_rate: skillBoth / total,
-    baseline_wins_both_positions_rate: baselineBoth / total,
-    split_decision_rate: splits / total
+    baseline_wins_both_positions_rate: baselineBoth / total
   };
 }
 
-function emptyPairwiseSummary(total, validTotal, invalidRate) {
+function emptyPairwiseSummary(total, validTotal, invalidRate, leftCondition, rightCondition) {
   return {
     total,
     valid_total: validTotal,
+    comparison_id: leftCondition && rightCondition ? `${leftCondition}_vs_${rightCondition}` : null,
+    left_condition: leftCondition,
+    right_condition: rightCondition,
+    left_win_rate: null,
+    right_win_rate: null,
     skill_win_rate: null,
     baseline_win_rate: null,
     tie_rate: null,
     invalid_pairwise_rate: invalidRate,
     margin_weighted_metrics_note: "Diagnostic only; use win/loss/tie rates for headline claims.",
+    left_margin_weighted_score: null,
+    right_margin_weighted_score: null,
+    net_margin_weighted_left_advantage: null,
     skill_margin_weighted_score: null,
     baseline_margin_weighted_score: null,
     net_margin_weighted_skill_advantage: null,
+    large_margin_left_win_rate: null,
+    large_margin_right_win_rate: null,
     large_margin_skill_win_rate: null,
     large_margin_baseline_win_rate: null,
     double_swap_pairs: 0,
     position_agreement_rate: null,
+    left_wins_both_positions_rate: null,
+    right_wins_both_positions_rate: null,
     skill_wins_both_positions_rate: null,
     baseline_wins_both_positions_rate: null,
     split_decision_rate: null
   };
+}
+
+function comparisonKey(result) {
+  return result.comparison_id || `${result.left_condition || "skill"}_vs_${result.right_condition || "baseline"}`;
+}
+
+function normalizePositionOrder(positionOrder) {
+  if (positionOrder === "skill_a") return "left_a";
+  if (positionOrder === "baseline_a") return "right_a";
+  return positionOrder;
+}
+
+function inferSingleValue(items, valueFn) {
+  const values = [...new Set(items.map(valueFn).filter(value => value !== undefined && value !== null))];
+  return values.length === 1 ? values[0] : null;
 }
 
 function summarizeBy(results, keyFn, summarizer) {

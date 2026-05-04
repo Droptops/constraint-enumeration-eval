@@ -78,6 +78,28 @@ test("summarizeResults includes length buckets and gate sensitivity", () => {
   assert.ok(summary.global.gate_sensitivity.conditions.skill);
 });
 
+test("summarizeResults uses PRIMARY_CONDITION for paired summary and gate sensitivity", () => {
+  const previous = process.env.PRIMARY_CONDITION;
+  process.env.PRIMARY_CONDITION = "production_constraint_prompt";
+
+  try {
+    const summary = summarizeResults([
+      result({ caseId: "a", condition: "baseline", pass: false, tokens: 5 }),
+      result({ caseId: "a", condition: "production_constraint_prompt", pass: true, tokens: 12 }),
+      result({ caseId: "a", condition: "skill", pass: false, tokens: 20 })
+    ]);
+
+    assert.equal(summary.global.primary_condition, "production_constraint_prompt");
+    assert.equal(summary.global.paired_delta_summary.comparison_id, "baseline_vs_production_constraint_prompt");
+    assert.ok(summary.global.gate_sensitivity.primary_minus_baseline);
+    assert.ok(summary.global.gate_sensitivity.primary_minus_all_conditions.production_constraint_prompt_minus_baseline);
+  } finally {
+    if (previous === undefined) delete process.env.PRIMARY_CONDITION;
+    else process.env.PRIMARY_CONDITION = previous;
+  }
+});
+
+
 test("invalid pairwise margin throws instead of silently zeroing", () => {
   assert.equal(marginWeight("small"), 0.33);
   assert.throws(() => marginWeight("huge"), /Invalid pairwise margin/);

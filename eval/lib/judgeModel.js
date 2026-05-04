@@ -97,7 +97,7 @@ async function callOpenAIResponses({ model, system, prompt, maxTokens, temperatu
         const data = await response.json();
         const extracted = extractOpenAIText(data);
         return {
-          text: data.output_text || extracted.text,
+          text: extracted.text,
           raw: data,
           stop_reason: extracted.refusal ? "refusal" : data.status || "completed",
           refusal: extracted.refusal || null

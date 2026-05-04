@@ -7,6 +7,7 @@ const ALL_EVAL_CONDITIONS = [
   "constraint_axis_prompting",
   "constraint_check_no_enumeration",
   "style_matched_baseline",
+  "production_constraint_prompt",
   "skill",
   "skill_concise"
 ];
@@ -51,6 +52,21 @@ export function getDoubleSwappedPairwise() {
   return parseBoolean(process.env.DOUBLE_SWAPPED_PAIRWISE, false);
 }
 
+export function getPrimaryCondition() {
+  return process.env.PRIMARY_CONDITION || "skill";
+}
+
+export function getPairwiseComparisons() {
+  const raw = process.env.PAIRWISE_COMPARISONS || `${getPrimaryCondition()}:baseline`;
+  const pairs = raw.split(",").map(value => value.trim()).filter(Boolean).map(parseConditionPair);
+
+  if (pairs.length === 0) {
+    throw new Error("PAIRWISE_COMPARISONS must contain at least one comparison like production_constraint_prompt:baseline.");
+  }
+
+  return dedupePairs(pairs);
+}
+
 export function getIncludeLengthControl() {
   return parseBoolean(process.env.INCLUDE_LENGTH_CONTROL, false);
 }
@@ -69,15 +85,20 @@ export function getEvalConditions() {
       }
     }
 
-    if (!requested.includes("baseline") || !requested.includes("skill")) {
-      throw new Error("EVAL_CONDITIONS must include both baseline and skill for paired/pairwise analysis.");
+    if (!requested.includes("baseline")) {
+      throw new Error("EVAL_CONDITIONS must include baseline for paired/pairwise analysis.");
     }
 
-    return canonicalizeEvalConditions(requested);
+    const canonical = canonicalizeEvalConditions(requested);
+    validatePrimaryAndPairwiseConditions(canonical);
+    return canonical;
   }
 
-  if (getIncludeLengthControl()) return canonicalizeEvalConditions(LEGACY_INCLUDE_LENGTH_CONTROL_CONDITIONS);
-  return canonicalizeEvalConditions(DEFAULT_EVAL_CONDITIONS);
+  const canonical = getIncludeLengthControl()
+    ? canonicalizeEvalConditions(LEGACY_INCLUDE_LENGTH_CONTROL_CONDITIONS)
+    : canonicalizeEvalConditions(DEFAULT_EVAL_CONDITIONS);
+  validatePrimaryAndPairwiseConditions(canonical);
+  return canonical;
 }
 
 export function isSameVendorJudge() {
@@ -94,12 +115,72 @@ export function getRunConfig() {
     double_swapped_pairwise: getDoubleSwappedPairwise(),
     include_length_control: getIncludeLengthControl(),
     eval_conditions: getEvalConditions(),
+    case_dir: process.env.CASE_DIR || "cases",
+    primary_condition: getPrimaryCondition(),
+    pairwise_comparisons: getPairwiseComparisons(),
     style_rewrite_model: getStyleRewriteModel()
   };
 }
 
 export function getAllowedEvalConditions() {
   return [...ALL_EVAL_CONDITIONS];
+}
+
+function validatePrimaryAndPairwiseConditions(conditions) {
+  const conditionSet = new Set(conditions);
+  const primaryCondition = getPrimaryCondition();
+
+  if (!ALL_EVAL_CONDITIONS.includes(primaryCondition)) {
+    throw new Error(`Unknown PRIMARY_CONDITION: ${primaryCondition}. Allowed: ${ALL_EVAL_CONDITIONS.join(", ")}`);
+  }
+
+  if (!conditionSet.has(primaryCondition)) {
+    throw new Error(`EVAL_CONDITIONS must include PRIMARY_CONDITION=${primaryCondition}.`);
+  }
+
+  for (const pair of getPairwiseComparisons()) {
+    if (!conditionSet.has(pair.left_condition) || !conditionSet.has(pair.right_condition)) {
+      throw new Error(
+        `PAIRWISE_COMPARISONS contains ${pair.left_condition}:${pair.right_condition}, but both conditions must be included in EVAL_CONDITIONS.`
+      );
+    }
+  }
+}
+
+function parseConditionPair(value) {
+  const parts = value.split(":").map(part => part.trim()).filter(Boolean);
+
+  if (parts.length !== 2) {
+    throw new Error(`Invalid pairwise comparison "${value}". Use left:right, for example production_constraint_prompt:baseline.`);
+  }
+
+  const [left_condition, right_condition] = parts;
+
+  for (const condition of [left_condition, right_condition]) {
+    if (!ALL_EVAL_CONDITIONS.includes(condition)) {
+      throw new Error(`Unknown pairwise comparison condition: ${condition}. Allowed: ${ALL_EVAL_CONDITIONS.join(", ")}`);
+    }
+  }
+
+  if (left_condition === right_condition) {
+    throw new Error(`Invalid pairwise comparison ${value}: left and right must differ.`);
+  }
+
+  return { left_condition, right_condition, comparison_id: `${left_condition}_vs_${right_condition}` };
+}
+
+function dedupePairs(pairs) {
+  const seen = new Set();
+  const deduped = [];
+
+  for (const pair of pairs) {
+    const key = `${pair.left_condition}:${pair.right_condition}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(pair);
+  }
+
+  return deduped;
 }
 
 function canonicalizeEvalConditions(conditions) {

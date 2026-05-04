@@ -4,11 +4,27 @@ Constraint Enumeration is a decision-quality eval for real-world prompts where a
 
 This repo evaluates whether a constraint-first system prompt reduces those failures relative to plain, careful, constraint-axis, style-matched, and no-enumeration controls.
 
-## Current release: v4.0
+## Current release: v5.1
 
-v4.0 is the publishability-hardening release. It keeps the v3.0 engineering fixes and adds the controls/diagnostics a hostile reviewer would ask for.
+v5.1 is the breakthrough-matrix release. It includes the v4.0 publishability hardening, the v5.0 production-prompt breakthrough harness, and v5.1 fixes for primary-condition reporting, rejudge command reproducibility, gate sensitivity, report output, and OpenAI extractor cleanup.
 
-New in v4.0:
+New in v5.1:
+
+- `paired_analysis` / `paired_delta_summary` now follow `PRIMARY_CONDITION` versus `baseline` instead of hardcoding `skill - baseline`.
+- Gate sensitivity now includes `primary_minus_*` rows, so `production_constraint_prompt` runs show alternate-gate robustness directly.
+- Cross-vendor rejudge documentation now includes `CASE_DIR`, `PRIMARY_CONDITION`, and matching `PAIRWISE_COMPARISONS` to avoid cases-hash mismatches.
+- `npm run report` now prints length-quartile pass-rate breakdowns and primary-condition gate sensitivity.
+- OpenAI text extraction now uses extracted output blocks only and skips reasoning/refusal blocks explicitly.
+
+New in v5.0:
+
+- Added `production_constraint_prompt` and `SKILL_PRODUCTION.md`.
+- Added arbitrary pairwise comparisons through `PAIRWISE_COMPARISONS`.
+- Added `PRIMARY_CONDITION` so the harness can test a production prompt as the headline condition.
+- Added `npm run eval:breakthrough`, `npm run make:large-holdout-prompt`, `npm run export:human-review`, and `npm run report`.
+- Added `BREAKTHROUGH_PROTOCOL.md` for 100+ case runs, cross-vendor rejudges, and human blind review.
+
+Included from v4.0:
 
 - Added `constraint_axis_prompting` control: primes broad constraint categories without the protocol or enumeration order.
 - Added `style_matched_baseline` control: rewrites the baseline answer into enumerated style without changing the baseline decision.
@@ -75,17 +91,20 @@ cd eval
 EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise \
 DOUBLE_SWAPPED_PAIRWISE=true \
 SMOKE_TRIALS=3 \
-RUN_ID=main-v4-anthropic \
+RUN_ID=main-v5-anthropic \
 npm run smoke
 ```
 
-Then rejudge the same saved answers with OpenAI:
+Then rejudge the same saved answers with OpenAI. Use the same `CASE_DIR`, `PRIMARY_CONDITION`, and `PAIRWISE_COMPARISONS` as the source run, otherwise resume/case hashing can correctly abort:
 
 ```bash
-SOURCE_RUN_ID=main-v4-anthropic \
-RUN_ID=main-v4-openai-rejudge \
+SOURCE_RUN_ID=main-v5-anthropic \
+RUN_ID=main-v5-openai-rejudge \
+CASE_DIR=cases_holdout \
 JUDGE_PROVIDER=openai \
 OPENAI_JUDGE_MODEL=gpt-5.1 \
+PRIMARY_CONDITION=production_constraint_prompt \
+PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill \
 DOUBLE_SWAPPED_PAIRWISE=true \
 npm run rejudge
 ```
@@ -93,10 +112,13 @@ npm run rejudge
 And optionally with Gemini/Google as a third judge family:
 
 ```bash
-SOURCE_RUN_ID=main-v4-anthropic \
-RUN_ID=main-v4-gemini-rejudge \
+SOURCE_RUN_ID=main-v5-anthropic \
+RUN_ID=main-v5-gemini-rejudge \
+CASE_DIR=cases_holdout \
 JUDGE_PROVIDER=google \
 GEMINI_JUDGE_MODEL=gemini-2.5-pro \
+PRIMARY_CONDITION=production_constraint_prompt \
+PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill \
 DOUBLE_SWAPPED_PAIRWISE=true \
 npm run rejudge
 ```
@@ -404,3 +426,29 @@ Before making a public claim:
 ## License
 
 MIT
+
+## v5: Breakthrough matrix
+
+v5 adds a production-oriented constraint prompt and a stronger matrix for testing whether the effect is real rather than just style or generic carefulness.
+
+New condition:
+
+```text
+production_constraint_prompt
+```
+
+Recommended breakthrough run:
+
+```bash
+cd eval
+CASE_DIR=cases_holdout \
+TRIALS=3 \
+PRIMARY_CONDITION=production_constraint_prompt \
+EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,style_matched_baseline,skill,production_constraint_prompt \
+PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill \
+npm run eval
+```
+
+For larger claims, create `eval/cases_holdout_large/` with 100-200 independently authored cases and run the same matrix with `CASE_DIR=cases_holdout_large`.
+
+Use `BREAKTHROUGH_PROTOCOL.md` for the full protocol, cross-vendor rejudge commands, and human-review workflow.

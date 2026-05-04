@@ -9,6 +9,8 @@ import {
   getJudgeProvider,
   getJudgeTemperature,
   getEvalConditions,
+  getPairwiseComparisons,
+  getPrimaryCondition,
   getRunConfig,
   isSameVendorJudge
 } from "./config.js";
@@ -19,6 +21,7 @@ import {
   CONSTRAINT_AXIS_PROMPTING_SYSTEM,
   CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM,
   STEP_BY_STEP_CONTROL_SYSTEM,
+  PRODUCTION_CONSTRAINT_PROMPT_SYSTEM,
   STYLE_MATCHED_REWRITE_SYSTEM
 } from "./runCase.js";
 import { generateAnswerResult } from "./runCase.js";
@@ -151,7 +154,8 @@ export async function runBatch({
     })
   );
 
-  const positionOrders = getDoubleSwappedPairwise() ? ["skill_a", "baseline_a"] : ["seeded"];
+  const positionOrders = getDoubleSwappedPairwise() ? ["left_a", "right_a"] : ["seeded"];
+  const pairwiseComparisons = getPairwiseComparisons();
   const absoluteResults = absoluteState.results;
   const absoluteMap = buildResultMap(absoluteResults);
 
@@ -167,6 +171,8 @@ export async function runBatch({
     log("WARNING: same-vendor judge path. Treat results as directional unless confirmed by another judge family.");
   }
   log(`Existing absolute results: ${absoluteResults.length}`);
+  log(`Primary condition: ${getPrimaryCondition()}`);
+  log(`Pairwise comparisons: ${pairwiseComparisons.map(pair => pair.comparison_id).join(", ")}`);
 
   for (const testCase of cases) {
     for (let trial = 1; trial <= trials; trial++) {
@@ -233,54 +239,67 @@ export async function runBatch({
 
     for (const testCase of cases) {
       for (let trial = 1; trial <= trials; trial++) {
-        const baseline = absoluteMap.get(resultKey({ caseId: testCase.id, condition: "baseline", trial }));
-        const skillResult = absoluteMap.get(resultKey({ caseId: testCase.id, condition: "skill", trial }));
+        for (const comparison of pairwiseComparisons) {
+          const left = absoluteMap.get(resultKey({ caseId: testCase.id, condition: comparison.left_condition, trial }));
+          const right = absoluteMap.get(resultKey({ caseId: testCase.id, condition: comparison.right_condition, trial }));
 
-        if (!baseline || !skillResult) {
-          log(`Missing absolute results for pairwise case=${testCase.id}, trial=${trial}`);
-          continue;
-        }
-
-        for (const positionOrder of positionOrders) {
-          const key = pairwiseKey({ caseId: testCase.id, trial, position_order: positionOrder });
-
-          if (state.completedKeys.has(key)) {
-            log(`Skipping completed ${mode} pairwise result: ${key}`);
+          if (!left || !right) {
+            log(`Missing absolute results for pairwise case=${testCase.id}, trial=${trial}, comparison=${comparison.comparison_id}`);
             continue;
           }
 
-          log(`Running ${mode} pairwise ${key}`);
+          for (const positionOrder of positionOrders) {
+            const key = pairwiseKey({
+              caseId: testCase.id,
+              trial,
+              position_order: positionOrder,
+              left_condition: comparison.left_condition,
+              right_condition: comparison.right_condition
+            });
 
-          const pairwise = await judgePairwise({
-            testCase,
-            baselineAnswer: baseline.answer,
-            skillAnswer: skillResult.answer,
-            seedRunId: runId,
-            trial,
-            mode,
-            positionOrder
-          });
+            if (state.completedKeys.has(key)) {
+              log(`Skipping completed ${mode} pairwise result: ${key}`);
+              continue;
+            }
 
-          const pairwiseResult = {
-            caseId: testCase.id,
-            category: testCase.category,
-            trial,
-            requires_direct_answer: testCase.requires_direct_answer,
-            clarification_expected: testCase.clarification_expected,
-            mode,
-            position_order: positionOrder,
-            skill_sha256: skillHash,
-            cases_sha256: casesHash,
-            run_config_sha256: runConfigHash,
-            pairwise,
-            winner_condition: pairwise.winner_condition
-          };
+            log(`Running ${mode} pairwise ${key}`);
 
-          appendJsonl(pairwisePaths[mode], pairwiseResult);
-          state.completedKeys.add(key);
-          pairwiseResults.push(pairwiseResult);
+            const pairwise = await judgePairwise({
+              testCase,
+              leftAnswer: left.answer,
+              rightAnswer: right.answer,
+              leftCondition: comparison.left_condition,
+              rightCondition: comparison.right_condition,
+              seedRunId: runId,
+              trial,
+              mode,
+              positionOrder
+            });
 
-          log(`Completed ${mode} pairwise ${key}: winner=${pairwise.winner_condition}`);
+            const pairwiseResult = {
+              caseId: testCase.id,
+              category: testCase.category,
+              trial,
+              requires_direct_answer: testCase.requires_direct_answer,
+              clarification_expected: testCase.clarification_expected,
+              mode,
+              comparison_id: comparison.comparison_id,
+              left_condition: comparison.left_condition,
+              right_condition: comparison.right_condition,
+              position_order: positionOrder,
+              skill_sha256: skillHash,
+              cases_sha256: casesHash,
+              run_config_sha256: runConfigHash,
+              pairwise,
+              winner_condition: pairwise.winner_condition
+            };
+
+            appendJsonl(pairwisePaths[mode], pairwiseResult);
+            state.completedKeys.add(key);
+            pairwiseResults.push(pairwiseResult);
+
+            log(`Completed ${mode} pairwise ${key}: winner=${pairwise.winner_condition}`);
+          }
         }
       }
     }
@@ -314,6 +333,7 @@ export async function runBatch({
       step_by_step_control: textStats(STEP_BY_STEP_CONTROL_SYSTEM),
       constraint_axis_prompting: textStats(CONSTRAINT_AXIS_PROMPTING_SYSTEM),
       constraint_check_no_enumeration: textStats(CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM),
+      production_constraint_prompt: textStats(PRODUCTION_CONSTRAINT_PROMPT_SYSTEM),
       style_matched_baseline: textStats(STYLE_MATCHED_REWRITE_SYSTEM),
       skill: textStats(skill),
       skill_concise: textStats(`${skill}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`)
