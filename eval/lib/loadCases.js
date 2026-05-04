@@ -48,8 +48,8 @@ function inferExpectedBehavior(testCase) {
 }
 
 function validateCase(testCase, sourceFile) {
-  if (!["1.0", "1.1"].includes(testCase.schema_version)) {
-    throw new Error(`${sourceFile}:${testCase.id || "unknown"} must have schema_version "1.0" or "1.1".`);
+  if (!["1.0", "1.1", "1.2"].includes(testCase.schema_version)) {
+    throw new Error(`${sourceFile}:${testCase.id || "unknown"} must have schema_version "1.0", "1.1", or "1.2".`);
   }
 
   if (!isNonEmptyString(testCase.id)) {
@@ -87,7 +87,7 @@ function validateCase(testCase, sourceFile) {
     );
   }
 
-  if (testCase.schema_version === "1.1") {
+  if (testCase.schema_version === "1.1" || testCase.schema_version === "1.2") {
     validateStringArray(testCase, sourceFile, "observed_facts", { allowEmpty: true });
     validateStringArray(testCase, sourceFile, "hard_constraints", { allowEmpty: false });
     validateStringArray(testCase, sourceFile, "soft_preferences", { allowEmpty: true });
