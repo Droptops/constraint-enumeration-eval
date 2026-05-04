@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   getEvalConditions,
   getJudgeProvider,
+  getPairwiseComparisons,
   getPrimaryCondition,
   isSameVendorJudge
 } from "../lib/config.js";
@@ -46,4 +47,24 @@ test("judge provider normalizes gemini alias", () => {
   withEnv({ JUDGE_PROVIDER: "gemini" }, () => {
     assert.equal(getJudgeProvider(), "google");
   });
+});
+
+test("pairwise comparisons are sorted by comparison_id regardless of input order", () => {
+  // a:b and b:a are different pairs (directional), but the order in the env
+  // string must not affect the hash. We test that the sorted output is stable.
+  withEnv(
+    {
+      EVAL_CONDITIONS: "baseline,careful_control,production_constraint_prompt",
+      PAIRWISE_COMPARISONS: "production_constraint_prompt:careful_control,production_constraint_prompt:baseline",
+      PRIMARY_CONDITION: "production_constraint_prompt"
+    },
+    () => {
+      const pairs = getPairwiseComparisons();
+      const ids = pairs.map(p => p.comparison_id);
+      assert.deepEqual(ids, [...ids].sort(), "comparison_ids must be in sorted order");
+      // Verify both pairs are present
+      assert.ok(ids.includes("production_constraint_prompt_vs_baseline"));
+      assert.ok(ids.includes("production_constraint_prompt_vs_careful_control"));
+    }
+  );
 });

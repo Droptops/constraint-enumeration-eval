@@ -42,3 +42,16 @@ test("invalid judge response fails every gate", () => {
   assert.equal(score.invalid_judge_response, true);
   assert.equal(score.gate_variants.v31_decision_quality_default, false);
 });
+
+test("invalid judge response does not set constraint_failure — tracked separately", () => {
+  const score = scoreJudgment({ valid_judge_response: false, error: "timeout" });
+  // constraint_failure should be null so invalid judges don't inflate
+  // constraint_failure_rate; they appear in invalid_judge_response_rate instead.
+  assert.equal(score.constraint_failure, null);
+});
+
+test("real constraint failure from valid judge sets constraint_failure true", () => {
+  const score = scoreJudgment(judgment({ violates_hard_constraint: true }));
+  assert.equal(score.invalid_judge_response, false);
+  assert.equal(score.constraint_failure, true);
+});

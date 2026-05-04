@@ -11,3 +11,11 @@ if (!fs.existsSync(repoRootSkillPath)) {
 
 fs.copyFileSync(repoRootSkillPath, appSkillPath);
 console.log("Copied ../SKILL.md to ./SKILL.md");
+
+const repoRootSkillProductionPath = path.join(process.cwd(), "..", "SKILL_PRODUCTION.md");
+const appSkillProductionPath = path.join(process.cwd(), "SKILL_PRODUCTION.md");
+
+if (fs.existsSync(repoRootSkillProductionPath)) {
+  fs.copyFileSync(repoRootSkillProductionPath, appSkillProductionPath);
+  console.log("Copied ../SKILL_PRODUCTION.md to ./SKILL_PRODUCTION.md");
+}

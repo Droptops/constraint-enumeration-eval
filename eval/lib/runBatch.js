@@ -15,14 +15,13 @@ import {
   getRunConfig,
   isSameVendorJudge
 } from "./config.js";
-import { loadSkillPrompt } from "./loadSkill.js";
+import { loadSkillProductionPrompt, loadSkillPrompt } from "./loadSkill.js";
 import {
   BASELINE_SYSTEM,
   CAREFUL_CONTROL_SYSTEM,
   CONSTRAINT_AXIS_PROMPTING_SYSTEM,
   CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM,
   STEP_BY_STEP_CONTROL_SYSTEM,
-  PRODUCTION_CONSTRAINT_PROMPT_SYSTEM,
   STYLE_MATCHED_REWRITE_SYSTEM
 } from "./runCase.js";
 import { generateAnswerResult } from "./runCase.js";
@@ -129,10 +128,18 @@ export async function runBatch({
   const pairwisePaths = makePairwisePaths(resultsDir, runId);
 
   const skill = loadSkillPrompt();
+  const skillProduction = loadSkillProductionPrompt();
   const skillHash = sha256(skill);
+  const skillProductionHash = sha256(skillProduction);
   const casesHash = semanticCasesHash(allCasesForHash);
+
+  // run_config_sha256 now incorporates file-loaded system prompts so that edits
+  // to SKILL.md or SKILL_PRODUCTION.md invalidate any in-progress resume.
   const runConfig = getRunConfig();
-  const runConfigHash = sha256(stableJson(runConfig));
+  const runConfigHash = sha256(stableJson({
+    config: runConfig,
+    file_prompt_sha256: { skill: skillHash, skill_production: skillProductionHash }
+  }));
 
   const absoluteState = loadCompletedResults(absolutePath, resultKey);
   assertResumeHashes(absoluteState.results, {
@@ -208,6 +215,7 @@ export async function runBatch({
           requires_direct_answer: testCase.requires_direct_answer,
           clarification_expected: testCase.clarification_expected,
           skill_sha256: skillHash,
+          skill_production_sha256: skillProductionHash,
           cases_sha256: casesHash,
           run_config_sha256: runConfigHash,
           answer,
@@ -290,6 +298,7 @@ export async function runBatch({
               right_condition: comparison.right_condition,
               position_order: positionOrder,
               skill_sha256: skillHash,
+              skill_production_sha256: skillProductionHash,
               cases_sha256: casesHash,
               run_config_sha256: runConfigHash,
               pairwise,
@@ -327,16 +336,28 @@ export async function runBatch({
       : null,
     double_swapped_pairwise: getDoubleSwappedPairwise(),
     skill_sha256: skillHash,
+    skill_production_sha256: skillProductionHash,
     cases_sha256: casesHash,
     run_config_sha256: runConfigHash,
     run_config: runConfig,
+    system_prompt_sha256: {
+      baseline: sha256(BASELINE_SYSTEM),
+      careful_control: sha256(CAREFUL_CONTROL_SYSTEM),
+      step_by_step_control: sha256(STEP_BY_STEP_CONTROL_SYSTEM),
+      constraint_axis_prompting: sha256(CONSTRAINT_AXIS_PROMPTING_SYSTEM),
+      constraint_check_no_enumeration: sha256(CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM),
+      production_constraint_prompt: skillProductionHash,
+      style_matched_baseline: sha256(STYLE_MATCHED_REWRITE_SYSTEM),
+      skill: skillHash,
+      skill_concise: sha256(`${skill}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`)
+    },
     system_prompt_stats: {
       baseline: textStats(BASELINE_SYSTEM),
       careful_control: textStats(CAREFUL_CONTROL_SYSTEM),
       step_by_step_control: textStats(STEP_BY_STEP_CONTROL_SYSTEM),
       constraint_axis_prompting: textStats(CONSTRAINT_AXIS_PROMPTING_SYSTEM),
       constraint_check_no_enumeration: textStats(CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM),
-      production_constraint_prompt: textStats(PRODUCTION_CONSTRAINT_PROMPT_SYSTEM),
+      production_constraint_prompt: textStats(skillProduction),
       style_matched_baseline: textStats(STYLE_MATCHED_REWRITE_SYSTEM),
       skill: textStats(skill),
       skill_concise: textStats(`${skill}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`)

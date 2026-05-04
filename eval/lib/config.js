@@ -88,7 +88,9 @@ export function getPairwiseComparisons() {
     throw new Error("PAIRWISE_COMPARISONS must contain at least one comparison like production_constraint_prompt:baseline.");
   }
 
-  return dedupePairs(pairs);
+  // Sort by comparison_id so PAIRWISE_COMPARISONS="a:b,c:d" and "c:d,a:b" produce
+  // identical run_config_sha256 values and can resume each other without collision.
+  return dedupePairs(pairs).sort((a, b) => (a.comparison_id < b.comparison_id ? -1 : 1));
 }
 
 export function getIncludeLengthControl() {

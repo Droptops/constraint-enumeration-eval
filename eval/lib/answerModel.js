@@ -7,7 +7,7 @@ import {
   shouldRetryTransportError,
   sleep
 } from "./retry.js";
-import { maybeAddTemperature } from "./sampling.js";
+import { getGeminiThinkingConfig, maybeAddTemperature } from "./sampling.js";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const GEMINI_GENERATE_URL = model =>
@@ -109,7 +109,8 @@ async function callGeminiAnswer({ model, system, messages, maxTokens, temperatur
       parts: [{ text: system }]
     },
     generationConfig: {
-      maxOutputTokens: maxTokens
+      maxOutputTokens: maxTokens,
+      ...getGeminiThinkingConfig(model)
     }
   }, { provider: "google", model, temperature });
 

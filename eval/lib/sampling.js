@@ -32,6 +32,27 @@ export function shouldOmitSamplingParams({ provider, model }) {
   return false;
 }
 
+/**
+ * Returns the thinkingConfig object to spread into generationConfig for Gemini models.
+ * - Gemini 3: uses thinkingLevel (not thinkingBudget)
+ * - Gemini 2.5 Pro: thinkingBudget range is 128–32768; cannot be disabled
+ * - Gemini 2.5 Flash/Flash-Lite: thinkingBudget can be 0 to disable thinking
+ * - All other models: no thinkingConfig
+ */
+export function getGeminiThinkingConfig(model) {
+  const m = String(model || "").toLowerCase();
+  if (m.includes("gemini-3")) {
+    return { thinkingConfig: { thinkingLevel: "low" } };
+  }
+  if (m.includes("gemini-2.5-pro")) {
+    return { thinkingConfig: { thinkingBudget: 128 } }; // minimum valid for Pro; cannot disable
+  }
+  if (m.includes("gemini-2.5-flash")) {
+    return { thinkingConfig: { thinkingBudget: 0 } }; // Flash supports 0 to disable thinking
+  }
+  return {};
+}
+
 export function maybeAddTemperature(body, { provider = "anthropic", model, temperature }) {
   if (temperature === undefined || temperature === null) return body;
   if (shouldOmitSamplingParams({ provider, model })) return body;

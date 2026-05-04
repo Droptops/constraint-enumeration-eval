@@ -7,7 +7,7 @@ import {
   getStyleRewriteModel,
   getStyleRewriteProvider
 } from "./config.js";
-import { loadSkillPrompt } from "./loadSkill.js";
+import { loadSkillProductionPrompt, loadSkillPrompt } from "./loadSkill.js";
 
 export const BASELINE_SYSTEM = "You are a helpful assistant.";
 
@@ -50,7 +50,7 @@ function systemForCondition(condition) {
     return `${loadSkillPrompt()}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`;
   }
   if (condition === "careful_control") return CAREFUL_CONTROL_SYSTEM;
-  if (condition === "production_constraint_prompt") return PRODUCTION_CONSTRAINT_PROMPT_SYSTEM;
+  if (condition === "production_constraint_prompt") return loadSkillProductionPrompt();
   if (condition === "step_by_step_control") return STEP_BY_STEP_CONTROL_SYSTEM;
   if (condition === "constraint_axis_prompting") return CONSTRAINT_AXIS_PROMPTING_SYSTEM;
   if (condition === "constraint_check_no_enumeration") return CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM;

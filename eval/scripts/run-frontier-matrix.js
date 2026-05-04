@@ -4,6 +4,17 @@ import { spawnSync } from "child_process";
 import { makeTimestampRunId, validateRunId } from "../lib/runId.js";
 
 const caseDir = process.env.CASE_DIR || "cases_holdout_large";
+
+// Validate CASE_DIR exists before starting a potentially multi-hour matrix run.
+// Follow FRONTIER_LAB_PROTOCOL.md Step 1 to generate the large holdout set.
+const caseDirPath = path.resolve(process.cwd(), caseDir);
+if (!process.env.DRY_RUN && !fs.existsSync(caseDirPath)) {
+  throw new Error(
+    `CASE_DIR="${caseDir}" does not exist at ${caseDirPath}.\n` +
+    `Create it first: NUM_CASES=100 npm run make:large-holdout-prompt (see FRONTIER_LAB_PROTOCOL.md Step 1).`
+  );
+}
+
 const trials = process.env.TRIALS || "3";
 const primaryCondition = process.env.PRIMARY_CONDITION || "production_constraint_prompt";
 const evalConditions = process.env.EVAL_CONDITIONS || "baseline,careful_control,constraint_axis_prompting,style_matched_baseline,skill,production_constraint_prompt";

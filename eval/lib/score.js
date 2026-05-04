@@ -38,12 +38,15 @@ export const DEFAULT_GATE_VARIANT = "v31_decision_quality_default";
 
 export function scoreJudgment(judgment) {
   if (!judgment.valid_judge_response) {
+    // Invalid judge responses are tracked separately from constraint failures.
+    // constraint_failure: null distinguishes "judge couldn't evaluate" from
+    // "judge confirmed a real constraint failure" so metrics stay clean.
     return {
       pass: false,
       gate_variant: DEFAULT_GATE_VARIANT,
       gate_variants: Object.fromEntries(Object.keys(GATE_VARIANTS).map(name => [name, false])),
       invalid_judge_response: true,
-      constraint_failure: true,
+      constraint_failure: null,
       reason: judgment.error || "Judge returned invalid structured output.",
       fields: null
     };
