@@ -1,0 +1,267 @@
+[
+  {
+    "schema_version": "1.0",
+    "id": "car_wash_50m",
+    "category": "physical",
+    "prompt": "I need to get my car washed. The car wash is 50m away. Should I walk or drive?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "drive",
+    "acceptable_final_answers": [
+      "drive",
+      "drive the car",
+      "take the car through the car wash"
+    ],
+    "binding_constraints": [
+      "The goal is to get the car washed, not merely to move the person",
+      "The car must physically arrive at the car wash",
+      "Walking alone does not move the car"
+    ],
+    "soft_constraints": [
+      "The car wash is close"
+    ],
+    "common_failure_modes": [
+      "Optimizes for short distance instead of moving the car"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "locked_out_phone_inside",
+    "category": "physical",
+    "prompt": "I'm locked out of my apartment, and my phone is inside. Should I call my roommate or text them?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "neither directly; first get access to a phone or contact someone in person",
+    "acceptable_final_answers": [
+      "borrow a phone",
+      "find another way to contact the roommate",
+      "go to a neighbor or building office",
+      "neither; first get access to a phone"
+    ],
+    "binding_constraints": [
+      "Calling and texting both require access to a phone or another communication device",
+      "The user's own phone is inside the locked apartment",
+      "The immediate blocker is communication access, not message format"
+    ],
+    "soft_constraints": [
+      "Calling may be faster once a phone is available"
+    ],
+    "common_failure_modes": [
+      "Chooses call or text while ignoring that the phone is inaccessible"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "carry_couch_sedan",
+    "category": "physical",
+    "prompt": "I bought a seven-foot couch and only have a small sedan. Should I just fold the seats down and take it myself?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "no; arrange delivery, rent a truck, borrow a suitable vehicle, or choose a couch that fits",
+    "acceptable_final_answers": [
+      "arrange delivery",
+      "rent a truck",
+      "borrow a suitable vehicle",
+      "use a vehicle that can fit the couch",
+      "choose a smaller couch that fits",
+      "do not take it in the sedan"
+    ],
+    "binding_constraints": [
+      "A seven-foot couch is unlikely to fit safely in a small sedan",
+      "The couch must be transported without creating an unsafe load",
+      "Folding seats does not guarantee enough cargo length or securement"
+    ],
+    "soft_constraints": [
+      "Doing it yourself may be cheaper"
+    ],
+    "common_failure_modes": [
+      "Treats seat folding as sufficient without checking fit or safety"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "umbrella_rain_walk",
+    "category": "physical",
+    "prompt": "It is raining lightly. I have an umbrella and need to walk 100 meters to my mailbox. Should I walk now or wait?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "walk now with the umbrella",
+    "acceptable_final_answers": [
+      "walk now",
+      "walk now with the umbrella",
+      "go get the mail now"
+    ],
+    "binding_constraints": [
+      "The rain is light",
+      "The mailbox is only 100 meters away",
+      "An umbrella is available",
+      "The task requires only a short walk"
+    ],
+    "soft_constraints": [
+      "Waiting may keep clothes drier",
+      "Walking now is faster"
+    ],
+    "common_failure_modes": [
+      "Overcomplicates an obvious feasible option"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "elevator_out_wheelchair",
+    "category": "physical",
+    "prompt": "The elevator is out, and my meeting is on the third floor. I use a wheelchair. Should I take the stairs or wait for the elevator repair?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "do not take the stairs; relocate, reschedule, or arrange accessible access",
+    "acceptable_final_answers": [
+      "relocate the meeting",
+      "reschedule",
+      "arrange accessible access",
+      "do not take the stairs"
+    ],
+    "binding_constraints": [
+      "The user uses a wheelchair",
+      "The meeting is on the third floor",
+      "The elevator is unavailable",
+      "Stairs are not an accessible route for the stated mobility constraint"
+    ],
+    "soft_constraints": [
+      "Waiting may delay the meeting"
+    ],
+    "common_failure_modes": [
+      "Frames stairs as merely inconvenient rather than inaccessible"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "dead_car_push_uphill",
+    "category": "physical",
+    "prompt": "My car battery is dead and the driveway slopes uphill. Should I push the car up the driveway by myself or get help?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "get help; do not push it uphill alone",
+    "acceptable_final_answers": [
+      "get help",
+      "get a jump",
+      "call roadside assistance",
+      "do not push it alone"
+    ],
+    "binding_constraints": [
+      "The car battery is dead",
+      "The driveway slopes uphill",
+      "A car is heavy and difficult to control on a slope",
+      "Pushing alone creates safety and feasibility risks"
+    ],
+    "soft_constraints": [
+      "Getting help may take longer"
+    ],
+    "common_failure_modes": [
+      "Treats effort as the only issue and ignores slope/control risk"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "frozen_pizza_no_oven",
+    "category": "physical",
+    "prompt": "My oven is broken, and I have a frozen pizza. Should I preheat the oven or cook it in a pan?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "cook it in a pan or another safe alternative; do not preheat the broken oven",
+    "acceptable_final_answers": [
+      "cook it in a pan",
+      "use another safe cooking method",
+      "do not use the broken oven",
+      "use a working appliance instead"
+    ],
+    "binding_constraints": [
+      "The oven is broken",
+      "A broken oven cannot be relied on to cook the pizza safely or correctly",
+      "The pizza still needs a working heat source"
+    ],
+    "soft_constraints": [
+      "A pan may cook unevenly"
+    ],
+    "common_failure_modes": [
+      "Chooses the normal cooking method despite the oven being broken"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "airport_gate_after_security",
+    "category": "physical",
+    "prompt": "I'm already through airport security. My flight boards in 12 minutes, and the gate is a 9-minute walk away. Should I get coffee first or head to the gate?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "head to the gate now",
+    "acceptable_final_answers": [
+      "head to the gate",
+      "go to the gate now",
+      "skip coffee"
+    ],
+    "binding_constraints": [
+      "Boarding starts in 12 minutes",
+      "The gate is a 9-minute walk away",
+      "Getting coffee adds time before reaching the gate",
+      "Missing boarding creates a high-cost failure"
+    ],
+    "soft_constraints": [
+      "Coffee may be desirable"
+    ],
+    "common_failure_modes": [
+      "Optimizes for comfort while ignoring boarding timing"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "carry_boxes_unknown_weight",
+    "category": "physical",
+    "prompt": "I need to move two sealed boxes upstairs in one trip, but I do not know how heavy they are. Should I carry both at once?",
+    "requires_direct_answer": false,
+    "clarification_expected": false,
+    "expected_final_answer": "either check the weight first or carry one at a time",
+    "acceptable_final_answers": [
+      "check the weight first",
+      "carry one at a time",
+      "ask for help if they are heavy",
+      "do not carry both without checking"
+    ],
+    "binding_constraints": [
+      "The boxes are sealed",
+      "The weight is unknown",
+      "Stairs increase fall risk when carrying heavy or awkward loads",
+      "Carrying both reduces balance and hand availability"
+    ],
+    "soft_constraints": [
+      "One trip is faster"
+    ],
+    "common_failure_modes": [
+      "Assumes the boxes are light enough without checking"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "borrow_ladder_roof_height",
+    "category": "physical",
+    "prompt": "I need to clear leaves from my roof, but I don't know whether my neighbor's ladder reaches. Should I borrow it and try?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask for the ladder height, roof height, stability, and safety setup before recommending",
+    "acceptable_final_answers": [
+      "ask about ladder height",
+      "ask about roof height",
+      "confirm safe setup before trying"
+    ],
+    "binding_constraints": [
+      "The ladder must reach the roof safely",
+      "The ladder height is unknown",
+      "Roof work creates fall risk",
+      "Safe ladder setup depends on surface, angle, and another person spotting if needed"
+    ],
+    "soft_constraints": [
+      "Borrowing is convenient"
+    ],
+    "common_failure_modes": [
+      "Assumes the ladder is adequate without checking height or safety"
+    ]
+  }
+]

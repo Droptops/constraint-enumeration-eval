@@ -1,0 +1,254 @@
+[
+  {
+    "schema_version": "1.0",
+    "id": "vendor_cheaper_but_migration_cost",
+    "category": "business",
+    "prompt": "Vendor B is $10K cheaper per year, but migration costs $50K. Should we switch this year?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "do not switch on first-year economics alone; payback is five years before risk-adjusting",
+    "acceptable_final_answers": [
+      "do not switch this year on economics alone",
+      "do not switch unless strategic benefits justify it",
+      "payback is five years"
+    ],
+    "binding_constraints": [
+      "Annual savings are $10K",
+      "One-time migration cost is $50K",
+      "Simple payback is five years before risk-adjusting",
+      "Switching creates implementation and operational risk"
+    ],
+    "soft_constraints": [
+      "Vendor B may have other strategic benefits"
+    ],
+    "common_failure_modes": [
+      "Optimizes for headline annual savings and ignores migration cost"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "send_short_email_to_cfo_board_case",
+    "category": "business",
+    "prompt": "I need to persuade a CFO on a six-figure migration. Should I send a short casual email or a formal business case?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "send a formal business case with a concise executive summary",
+    "acceptable_final_answers": [
+      "send a formal business case",
+      "send a board-style business case",
+      "send an executive summary plus financial case"
+    ],
+    "binding_constraints": [
+      "The buyer is a CFO",
+      "The decision involves six figures",
+      "A migration requires financial, risk, and implementation justification",
+      "A casual email is unlikely to satisfy executive decision requirements"
+    ],
+    "soft_constraints": [
+      "The executive summary should be concise"
+    ],
+    "common_failure_modes": [
+      "Optimizes only for brevity and ignores decision rigor"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "discount_to_close_bad_fit",
+    "category": "business",
+    "prompt": "A bad-fit customer will sign today if we discount heavily. Should we take the deal?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "do not take the poor-fit deal without retention, support, and strategic justification",
+    "acceptable_final_answers": [
+      "do not take it as-is",
+      "do not discount heavily for a bad-fit customer",
+      "only proceed with retention and support justification"
+    ],
+    "binding_constraints": [
+      "The customer is a bad fit",
+      "Heavy discounting reduces margin",
+      "Poor-fit customers increase churn and support burden",
+      "Signing today does not eliminate long-term account risk"
+    ],
+    "soft_constraints": [
+      "Closed-won revenue may help near-term quota"
+    ],
+    "common_failure_modes": [
+      "Optimizes for near-term signature and ignores downstream cost"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "extend_trial_or_force_close",
+    "category": "business",
+    "prompt": "Security review is not done, but the trial ends Friday. Should I force close or extend the trial?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "extend or structure the trial around security review rather than forcing a premature close",
+    "acceptable_final_answers": [
+      "extend the trial",
+      "structure the trial around security review",
+      "do not force close"
+    ],
+    "binding_constraints": [
+      "Security review is incomplete",
+      "The trial deadline is artificial relative to approval risk",
+      "Forcing close before security review can stall or damage the deal"
+    ],
+    "soft_constraints": [
+      "A deadline can create urgency"
+    ],
+    "common_failure_modes": [
+      "Optimizes for artificial deadline over approval path"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "cut_support_to_improve_margin",
+    "category": "business",
+    "prompt": "Support costs are hurting margin. Should we cut support headcount now?",
+    "requires_direct_answer": false,
+    "clarification_expected": false,
+    "expected_final_answer": "either analyze churn, SLA risk, ticket volume, and automation first or recommend a staged plan based on those assumptions",
+    "acceptable_final_answers": [
+      "analyze before cutting",
+      "use a staged support plan",
+      "consider automation before cuts"
+    ],
+    "binding_constraints": [
+      "Support cuts can increase churn and SLA failures",
+      "Ticket volume and customer segments are unspecified",
+      "Automation or process improvements may reduce cost without service cuts"
+    ],
+    "soft_constraints": [
+      "Margin improvement is important"
+    ],
+    "common_failure_modes": [
+      "Cuts headcount without assessing revenue risk"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "launch_without_compliance_review",
+    "category": "business",
+    "prompt": "Marketing wants to launch tomorrow, but compliance has not reviewed the campaign. Should we launch?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "no; get compliance review before launching",
+    "acceptable_final_answers": [
+      "do not launch before compliance review",
+      "get compliance review first",
+      "delay launch"
+    ],
+    "binding_constraints": [
+      "Compliance review is incomplete",
+      "The campaign could create regulatory or brand risk",
+      "Launching tomorrow is a timing preference, not a substitute for review"
+    ],
+    "soft_constraints": [
+      "Launching sooner may capture demand"
+    ],
+    "common_failure_modes": [
+      "Optimizes for speed over compliance"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "renew_cheaper_contract_worse_sla",
+    "category": "business",
+    "prompt": "A vendor renewal is 20% cheaper but has a worse SLA. Should we renew?",
+    "requires_direct_answer": false,
+    "clarification_expected": false,
+    "expected_final_answer": "either quantify the SLA risk first or renew only if critical reliability requirements are still met",
+    "acceptable_final_answers": [
+      "quantify SLA risk",
+      "renew only if reliability needs are met",
+      "do not renew solely on price"
+    ],
+    "binding_constraints": [
+      "The renewal is cheaper",
+      "The SLA is worse",
+      "The impact depends on whether the service is mission-critical",
+      "Reliability failures can outweigh direct savings"
+    ],
+    "soft_constraints": [
+      "Lower cost helps budget"
+    ],
+    "common_failure_modes": [
+      "Optimizes only for price"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "hire_enterprise_ae_or_sdrs",
+    "category": "business",
+    "prompt": "Should I hire one enterprise AE or two SDRs next quarter?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask whether the binding bottleneck is pipeline creation, conversion, coverage, or sales cycle capacity",
+    "acceptable_final_answers": [
+      "ask about funnel bottleneck",
+      "ask about pipeline and conversion"
+    ],
+    "binding_constraints": [
+      "AEs and SDRs solve different funnel bottlenecks",
+      "The current bottleneck is unspecified",
+      "Hiring choice depends on pipeline coverage, conversion, and territory capacity"
+    ],
+    "soft_constraints": [
+      "AEs may close deals; SDRs may create pipeline"
+    ],
+    "common_failure_modes": [
+      "Chooses a role without diagnosing funnel bottleneck"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "raise_price_existing_customers",
+    "category": "business",
+    "prompt": "Should we raise prices for existing customers next renewal cycle?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask about contract terms, churn risk, value delivered, segments, and notice requirements",
+    "acceptable_final_answers": [
+      "ask about contract terms and churn risk"
+    ],
+    "binding_constraints": [
+      "Pricing changes depend on contract terms",
+      "Churn risk and delivered value are unspecified",
+      "Customer segments may tolerate price changes differently"
+    ],
+    "soft_constraints": [
+      "Higher prices increase revenue"
+    ],
+    "common_failure_modes": [
+      "Assumes price increase is pure upside"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "ship_feature_with_known_bug",
+    "category": "business",
+    "prompt": "A feature has a known bug affecting a small subset of users. Should we ship it broadly?",
+    "requires_direct_answer": false,
+    "clarification_expected": false,
+    "expected_final_answer": "either assess severity and exposure first or gate the rollout with disclosure and mitigation",
+    "acceptable_final_answers": [
+      "assess severity first",
+      "gate the rollout",
+      "do not broadly ship without mitigation"
+    ],
+    "binding_constraints": [
+      "A known bug exists",
+      "Only a subset is affected but severity is unspecified",
+      "Broad rollout increases blast radius",
+      "Gating or limiting rollout can reduce risk"
+    ],
+    "soft_constraints": [
+      "Shipping sooner may deliver value"
+    ],
+    "common_failure_modes": [
+      "Treats small subset as automatically acceptable"
+    ]
+  }
+]

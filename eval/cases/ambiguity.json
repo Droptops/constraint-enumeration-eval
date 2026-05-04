@@ -1,0 +1,246 @@
+[
+  {
+    "schema_version": "1.0",
+    "id": "airport_uber_or_bus",
+    "category": "ambiguity",
+    "prompt": "I need to get to the airport. Should I take Uber or the bus?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask what matters most: time, cost, luggage, reliability, and departure time",
+    "acceptable_final_answers": [
+      "ask about time/cost/luggage/reliability",
+      "state assumptions before recommending"
+    ],
+    "binding_constraints": [
+      "The best option depends on time pressure, cost tolerance, luggage, and reliability needs",
+      "Airport travel has a high penalty for delays",
+      "The prompt does not specify the optimization criterion"
+    ],
+    "soft_constraints": [
+      "Bus is usually cheaper",
+      "Uber is usually more convenient"
+    ],
+    "common_failure_modes": [
+      "Recommends one option without knowing the binding priority"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "buy_laptop_fast_or_cheap",
+    "category": "ambiguity",
+    "prompt": "I need a laptop. Should I buy the cheapest one today or wait for a better one?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask about workload, deadline, budget, and minimum specs",
+    "acceptable_final_answers": [
+      "ask about workload, deadline, budget, and specs"
+    ],
+    "binding_constraints": [
+      "The right choice depends on workload requirements",
+      "The deadline is unspecified",
+      "Budget and minimum acceptable specs are unspecified"
+    ],
+    "soft_constraints": [
+      "Cheaper laptops save cash",
+      "Waiting may produce better value"
+    ],
+    "common_failure_modes": [
+      "Optimizes only for price without knowing required use"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "hire_candidate_speed_vs_quality",
+    "category": "ambiguity",
+    "prompt": "Should I hire the candidate I can close this week or keep interviewing?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask about quality bar, urgency, pipeline strength, and role criticality",
+    "acceptable_final_answers": [
+      "ask about candidate quality and hiring urgency"
+    ],
+    "binding_constraints": [
+      "The best decision depends on whether the candidate meets the role bar",
+      "Hiring urgency and pipeline strength are unspecified",
+      "A poor hire can be costlier than a delayed hire"
+    ],
+    "soft_constraints": [
+      "Closing quickly reduces vacancy time"
+    ],
+    "common_failure_modes": [
+      "Optimizes for speed without evaluating fit"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "move_meeting_morning_afternoon",
+    "category": "ambiguity",
+    "prompt": "Should I move my customer meeting to the morning or afternoon?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask about customer availability, time zones, agenda urgency, and attendee constraints",
+    "acceptable_final_answers": [
+      "ask about customer availability and time zones"
+    ],
+    "binding_constraints": [
+      "Customer availability is unknown",
+      "Time zones may affect meeting quality",
+      "The agenda urgency and attendee constraints are unspecified"
+    ],
+    "soft_constraints": [
+      "Morning may be better for focus"
+    ],
+    "common_failure_modes": [
+      "Picks a time based on generic preference"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "invest_cash_now_or_wait",
+    "category": "ambiguity",
+    "prompt": "I have extra cash. Should I invest it now or wait?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask about time horizon, risk tolerance, liquidity needs, and debt obligations",
+    "acceptable_final_answers": [
+      "ask about time horizon, risk tolerance, liquidity, and debt"
+    ],
+    "binding_constraints": [
+      "Investment suitability depends on time horizon",
+      "Risk tolerance and liquidity needs are unspecified",
+      "Debt obligations or emergency reserves may be binding"
+    ],
+    "soft_constraints": [
+      "Investing earlier can increase time in market"
+    ],
+    "common_failure_modes": [
+      "Gives market timing advice without financial context"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "send_email_or_call_ceo",
+    "category": "ambiguity",
+    "prompt": "Should I email the CEO or call them?",
+    "requires_direct_answer": false,
+    "clarification_expected": true,
+    "expected_final_answer": "ask about relationship, urgency, context, and prior communication history",
+    "acceptable_final_answers": [
+      "ask about relationship, urgency, and context"
+    ],
+    "binding_constraints": [
+      "The appropriate channel depends on relationship and urgency",
+      "The context and sensitivity of the message are unspecified",
+      "Prior communication norms matter"
+    ],
+    "soft_constraints": [
+      "Calls are faster",
+      "Email is easier to forward"
+    ],
+    "common_failure_modes": [
+      "Chooses a channel without context"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "umbrella_or_wait_direct",
+    "category": "ambiguity",
+    "prompt": "It is drizzling, I have a raincoat, and the store is one block away. Should I go now or wait?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "go now with the raincoat",
+    "acceptable_final_answers": [
+      "go now",
+      "go now with the raincoat",
+      "walk to the store now"
+    ],
+    "binding_constraints": [
+      "The rain is light",
+      "The destination is close",
+      "The user has rain protection",
+      "No binding constraint blocks the short trip"
+    ],
+    "soft_constraints": [
+      "Waiting may be more comfortable"
+    ],
+    "common_failure_modes": [
+      "Asks unnecessary clarification for a low-risk obvious choice"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "meeting_starts_in_five_minutes",
+    "category": "ambiguity",
+    "prompt": "My meeting starts in five minutes and it takes four minutes to walk there. Should I reply to one more email first?",
+    "requires_direct_answer": true,
+    "clarification_expected": false,
+    "expected_final_answer": "go to the meeting now",
+    "acceptable_final_answers": [
+      "go now",
+      "head to the meeting",
+      "do not reply first"
+    ],
+    "binding_constraints": [
+      "The meeting starts in five minutes",
+      "Walking there takes four minutes",
+      "Replying to email adds delay",
+      "Arriving late risks missing the start"
+    ],
+    "soft_constraints": [
+      "Replying may clear a task"
+    ],
+    "common_failure_modes": [
+      "Optimizes for inbox completion while ignoring start time"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "rent_airbnb_or_hotel_baby",
+    "category": "ambiguity",
+    "prompt": "Traveling with a baby for a week: Airbnb or hotel?",
+    "requires_direct_answer": false,
+    "clarification_expected": false,
+    "expected_final_answer": "either ask about sleep setup, laundry, kitchen, location, and cancellation needs or recommend based on stated assumptions",
+    "acceptable_final_answers": [
+      "ask about baby logistics",
+      "state assumptions and recommend hotel or Airbnb accordingly"
+    ],
+    "binding_constraints": [
+      "Baby travel needs depend on sleep setup, feeding, laundry, and location",
+      "The prompt lacks budget, location, and cancellation constraints",
+      "A recommendation can be useful if assumptions are stated clearly"
+    ],
+    "soft_constraints": [
+      "Hotels are simpler",
+      "Airbnbs can provide kitchen/laundry"
+    ],
+    "common_failure_modes": [
+      "Picks lodging without handling baby-specific constraints"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "choose_vendor_a_or_b",
+    "category": "ambiguity",
+    "prompt": "Vendor A is cheaper. Vendor B has better support. Which should I choose?",
+    "requires_direct_answer": false,
+    "clarification_expected": false,
+    "expected_final_answer": "either ask which constraint is binding or recommend based on assumptions about support risk",
+    "acceptable_final_answers": [
+      "ask what matters more",
+      "state assumptions and choose accordingly"
+    ],
+    "binding_constraints": [
+      "The tradeoff depends on whether cost or support risk is binding",
+      "Support quality may affect downtime and adoption",
+      "Budget constraints may outweigh support advantages in some contexts"
+    ],
+    "soft_constraints": [
+      "Cheaper vendor saves money",
+      "Better support reduces operational risk"
+    ],
+    "common_failure_modes": [
+      "Chooses based on one attribute without stating assumptions"
+    ]
+  }
+]

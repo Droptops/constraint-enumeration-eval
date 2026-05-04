@@ -2,15 +2,26 @@
   "name": "constraint-enumeration-eval",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-skill.js",
+    "prebuild": "node scripts/copy-skill.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "eval": "node scripts/run-eval.mjs"
+    "smoke": "node scripts/copy-skill.js && node scripts/smoke-test.js",
+    "lint": "next lint",
+    "check:esm": "! grep -r \"require(\" lib scripts pages",
+    "prestart": "node scripts/copy-skill.js"
   },
   "dependencies": {
-    "next": "^16.2.4",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "eslint": "latest",
+    "eslint-config-next": "latest"
   }
 }

@@ -1,7 +1,12 @@
 node_modules/
 .next/
+out/
+dist/
 .env
 .env.local
 .env.*.local
 .DS_Store
-*.log
+coverage/
+eval/results/*.json
+eval/results/*.jsonl
+eval/SKILL.md
