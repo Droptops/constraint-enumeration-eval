@@ -7,7 +7,7 @@ import {
   getStyleRewriteModel,
   getStyleRewriteProvider
 } from "./config.js";
-import { loadSkillProductionPrompt, loadSkillPrompt } from "./loadSkill.js";
+import { loadSkillProductionPrompt, loadSkillProductionV63Prompt, loadSkillPrompt } from "./loadSkill.js";
 
 export const BASELINE_SYSTEM = "You are a helpful assistant.";
 
@@ -51,6 +51,7 @@ function systemForCondition(condition) {
   }
   if (condition === "careful_control") return CAREFUL_CONTROL_SYSTEM;
   if (condition === "production_constraint_prompt") return loadSkillProductionPrompt();
+  if (condition === "production_blocker_first_v6.3_candidate") return loadSkillProductionV63Prompt();
   if (condition === "step_by_step_control") return STEP_BY_STEP_CONTROL_SYSTEM;
   if (condition === "constraint_axis_prompting") return CONSTRAINT_AXIS_PROMPTING_SYSTEM;
   if (condition === "constraint_check_no_enumeration") return CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM;
@@ -126,9 +127,4 @@ async function generateStyleMatchedBaseline({ testCase, baselineAnswer }) {
 function normalizeAnswerResult(result, metadata = {}) {
   return {
     text: result.text,
-    raw: result.raw,
-    stop_reason: result.stop_reason,
-    truncated: result.stop_reason === "max_tokens",
-    ...metadata
-  };
-}
+ 

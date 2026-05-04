@@ -8,6 +8,7 @@ const ALL_EVAL_CONDITIONS = [
   "constraint_check_no_enumeration",
   "style_matched_baseline",
   "production_constraint_prompt",
+  "production_blocker_first_v6.3_candidate",
   "skill",
   "skill_concise"
 ];

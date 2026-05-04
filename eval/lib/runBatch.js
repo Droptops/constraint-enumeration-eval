@@ -15,7 +15,7 @@ import {
   getRunConfig,
   isSameVendorJudge
 } from "./config.js";
-import { loadSkillProductionPrompt, loadSkillPrompt } from "./loadSkill.js";
+import { loadSkillProductionPrompt, loadSkillProductionV63Prompt, loadSkillPrompt } from "./loadSkill.js";
 import {
   BASELINE_SYSTEM,
   CAREFUL_CONTROL_SYSTEM,
@@ -129,16 +129,18 @@ export async function runBatch({
 
   const skill = loadSkillPrompt();
   const skillProduction = loadSkillProductionPrompt();
+  const skillProductionV63 = loadSkillProductionV63Prompt();
   const skillHash = sha256(skill);
   const skillProductionHash = sha256(skillProduction);
+  const skillProductionV63Hash = sha256(skillProductionV63);
   const casesHash = semanticCasesHash(allCasesForHash);
 
   // run_config_sha256 now incorporates file-loaded system prompts so that edits
-  // to SKILL.md or SKILL_PRODUCTION.md invalidate any in-progress resume.
+  // to SKILL.md, SKILL_PRODUCTION.md, or SKILL_PRODUCTION_V63.md invalidate any in-progress resume.
   const runConfig = getRunConfig();
   const runConfigHash = sha256(stableJson({
     config: runConfig,
-    file_prompt_sha256: { skill: skillHash, skill_production: skillProductionHash }
+    file_prompt_sha256: { skill: skillHash, skill_production: skillProductionHash, skill_production_v63: skillProductionV63Hash }
   }));
 
   const absoluteState = loadCompletedResults(absolutePath, resultKey);
@@ -337,6 +339,7 @@ export async function runBatch({
     double_swapped_pairwise: getDoubleSwappedPairwise(),
     skill_sha256: skillHash,
     skill_production_sha256: skillProductionHash,
+    skill_production_v63_sha256: skillProductionV63Hash,
     cases_sha256: casesHash,
     run_config_sha256: runConfigHash,
     run_config: runConfig,
@@ -347,6 +350,7 @@ export async function runBatch({
       constraint_axis_prompting: sha256(CONSTRAINT_AXIS_PROMPTING_SYSTEM),
       constraint_check_no_enumeration: sha256(CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM),
       production_constraint_prompt: skillProductionHash,
+      "production_blocker_first_v6.3_candidate": skillProductionV63Hash,
       style_matched_baseline: sha256(STYLE_MATCHED_REWRITE_SYSTEM),
       skill: skillHash,
       skill_concise: sha256(`${skill}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`)
@@ -358,6 +362,7 @@ export async function runBatch({
       constraint_axis_prompting: textStats(CONSTRAINT_AXIS_PROMPTING_SYSTEM),
       constraint_check_no_enumeration: textStats(CONSTRAINT_CHECK_NO_ENUMERATION_SYSTEM),
       production_constraint_prompt: textStats(skillProduction),
+      "production_blocker_first_v6.3_candidate": textStats(skillProductionV63),
       style_matched_baseline: textStats(STYLE_MATCHED_REWRITE_SYSTEM),
       skill: textStats(skill),
       skill_concise: textStats(`${skill}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`)
@@ -376,19 +381,4 @@ export async function runBatch({
     pairwise_gold_anchored_summary: pairwiseSummaries.gold_anchored,
     pairwise_gold_blind_summary: pairwiseSummaries.gold_blind,
     result_files: {
-      absolute_results_jsonl: relativeResultPath(absolutePath),
-      pairwise_gold_anchored_jsonl: relativeResultPath(pairwisePaths.gold_anchored),
-      pairwise_gold_blind_jsonl: relativeResultPath(pairwisePaths.gold_blind),
-      summary_json: relativeResultPath(summaryPath)
-    }
-  };
-
-  fs.writeFileSync(summaryPath, JSON.stringify(artifact, null, 2));
-
-  return {
-    artifact,
-    summaryPath,
-    absolutePath,
-    pairwisePaths
-  };
-}
+      absolu
