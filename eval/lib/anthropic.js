@@ -1,4 +1,5 @@
 import { DEFAULT_RETRYABLE_STATUS_CODES, exponentialBackoffMs, parseRetryAfterMs, sleep } from "./retry.js";
+import { maybeAddTemperature, shouldOmitAnthropicSamplingParams } from "./sampling.js";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -23,12 +24,11 @@ export async function callClaude({
     throw new Error("messages must be a non-empty array");
   }
 
-  const body = {
+  const body = maybeAddTemperature({
     model,
     max_tokens: maxTokens,
-    temperature,
     messages
-  };
+  }, { model, temperature });
 
   if (system) body.system = system;
   if (outputConfig) body.output_config = outputConfig;

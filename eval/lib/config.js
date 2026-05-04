@@ -26,6 +26,20 @@ export function getDoubleSwappedPairwise() {
   return parseBoolean(process.env.DOUBLE_SWAPPED_PAIRWISE, false);
 }
 
+export function getIncludeLengthControl() {
+  return parseBoolean(process.env.INCLUDE_LENGTH_CONTROL, false);
+}
+
+export function getEvalConditions() {
+  const conditions = ["baseline", "skill"];
+  if (getIncludeLengthControl()) conditions.splice(1, 0, "careful_control");
+  return conditions;
+}
+
+export function isSameVendorJudge() {
+  return getJudgeProvider() !== "openai";
+}
+
 function parseTemperature(value, fallback, name) {
   if (value === undefined || value === null || value === "") return fallback;
 

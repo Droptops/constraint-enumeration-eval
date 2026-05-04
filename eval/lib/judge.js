@@ -158,7 +158,7 @@ export async function judgeAnswer({ testCase, answer }) {
   const result = await callJudgeModel({
     system: "You are a strict evaluator. Return only the requested structured judgment.",
     prompt,
-    maxTokens: 1200,
+    maxTokens: 1600,
     temperature: getJudgeTemperature(),
     outputConfig: judgeOutputConfig,
     schemaName: "constraint_judge"

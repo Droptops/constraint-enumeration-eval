@@ -41,15 +41,16 @@ JUDGE_MODEL=claude-opus-4-7
 ANSWER_TEMPERATURE=0
 JUDGE_TEMPERATURE=0
 DOUBLE_SWAPPED_PAIRWISE=false
+INCLUDE_LENGTH_CONTROL=false
 ```
 
-The default `ANSWER_TEMPERATURE=0` is deterministic and pairs correctly with `trials=1`. For variance testing, use a nonzero answer temperature such as `0.5` only with enough trials to average sampling noise.
+The default `ANSWER_TEMPERATURE=0` is deterministic and pairs correctly with `trials=1`. For variance testing, use a nonzero answer temperature such as `0.5` only with enough trials to average sampling noise. The Anthropic wrapper omits `temperature` for Claude Opus 4.7 requests because Anthropic removed sampling parameters for that model; keep this behavior if you use Opus 4.7 as judge.
 
 `claude-opus-4-7` is a higher-capability separate judge model from the answer model. This is **cross-tier within Anthropic**, not true cross-family judging.
 
 True cross-family judging requires a different vendor/model family. The repo supports `JUDGE_PROVIDER=openai` for an optional OpenAI structured-output judge pass. Same-vendor judge results should be treated as directional unless confirmed by another judge family. Same-model judging is supported for cost reasons, but it is **not recommended for publishable claims** because it can reward outputs that look like the same model family's preferred format.
 
-Anthropic structured judging uses the current Claude Messages API JSON-output shape: `output_config.format` with `type: "json_schema"`. Current Anthropic docs state that the previous beta header and `output_format` parameter moved to `output_config.format`, and beta headers are no longer required.
+Anthropic structured judging uses the current Claude Messages API JSON-output shape: `output_config.format` with `type: "json_schema"`. Current Anthropic docs state that the previous beta header and `output_format` parameter moved to `output_config.format`, and beta headers are no longer required. For Claude Opus 4.7 specifically, this repo omits sampling parameters such as `temperature` from Anthropic requests.
 
 ## Case set
 
@@ -334,6 +335,25 @@ curl -X POST http://localhost:3000/api/run-eval \
   }'
 ```
 
+
+## Optional controls and rejudging
+
+Length-matched control arm:
+
+```bash
+INCLUDE_LENGTH_CONTROL=true npm run smoke
+```
+
+This adds `careful_control`, a generic carefulness prompt that is longer than the baseline but does not teach the Constraint Enumeration protocol. Use it to separate “any longer system prompt helps” from the specific skill effect.
+
+Rejudge existing answers with another judge family without regenerating model outputs:
+
+```bash
+SOURCE_RUN_ID={existingRunId} JUDGE_PROVIDER=openai OPENAI_API_KEY=... npm run rejudge
+```
+
+This is the recommended way to compare judge families on identical answer text.
+
 ## Result artifacts
 
 Each run writes:
@@ -369,7 +389,7 @@ The summary artifact includes:
 
 ## Reporting results
 
-Use this format once you have a real run:
+Use this format once you have a real run. The summary includes paired analyses with normal-approximation 95% confidence intervals and McNemar-style discordant-pair diagnostics for baseline-vs-skill pass/fail and constraint-failure reduction:
 
 ```text
 Run ID: {runId}
@@ -396,6 +416,10 @@ Gold-blind pairwise preferred Constraint Enumeration in D% of valid trials.
 Large-margin Constraint Enumeration wins: E%
 Net margin-weighted skill advantage: F
 
+Paired pass-rate delta CI: [L, U]
+Paired constraint-failure reduction CI: [L, U]
+McNemar discordant pairs: b/c
+
 Artifact:
 results/{runId}.summary.json
 ```
@@ -411,8 +435,9 @@ larger case sets
 cross-tier or, ideally, cross-family judging
 temperature 0 with trials=1 for deterministic runs OR answer_temperature > 0 with enough trials to average sampling noise
 gold-anchored and gold-blind pairwise agreement
-category-level rollups
+category-level and behavior-policy rollups
 direct-answer and clarification cases mixed across categories
+paired confidence intervals and discordant-pair diagnostics
 ```
 
 Opus-vs-Sonnet judging is cross-tier within Anthropic, not true cross-family judging. Publishable claims should ideally be confirmed with a second judge family.
@@ -439,6 +464,7 @@ Recommended release gates before public benchmark claims:
 
 ```text
 Run the same artifact with JUDGE_PROVIDER=openai and compare Anthropic/OpenAI agreement
+Use `npm run rejudge` to rejudge existing answer JSONL with a second judge family without regenerating answers
 Manually audit a random sample of absolute and pairwise judgments
 Use double-swapped pairwise for the headline run if budget allows
 ```
@@ -448,9 +474,9 @@ Future improvements:
 ```text
 Human-audited gold set
 Larger case set
-Confidence intervals
 Failure-mode clustering
 zod-to-json-schema to remove schema drift
+OpenAI Chat Completions fallback for non-Responses API models
 ```
 
 ## Security notes

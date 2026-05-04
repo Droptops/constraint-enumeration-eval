@@ -1,19 +1,29 @@
 export function summarizeResults(results) {
   return {
     global: summarizeResultsGroup(results),
-    by_category: summarizeByCategory(results, summarizeResultsGroup)
+    by_category: summarizeBy(results, result => result.category || "uncategorized", summarizeResultsGroup),
+    by_behavior_policy: summarizeBy(results, behaviorPolicyKey, summarizeResultsGroup)
   };
 }
 
 function summarizeResultsGroup(results) {
   const byCondition = groupBy(results, result => result.condition);
-  const baseline = summarizeCondition(byCondition.baseline || []);
-  const skill = summarizeCondition(byCondition.skill || []);
+  const conditions = Object.fromEntries(
+    Object.entries(byCondition)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([condition, conditionResults]) => [condition, summarizeCondition(conditionResults)])
+  );
+
+  const baseline = conditions.baseline || summarizeCondition([]);
+  const skill = conditions.skill || summarizeCondition([]);
 
   return {
+    conditions,
     baseline,
     skill,
-    lift: computeLift(baseline, skill)
+    careful_control: conditions.careful_control || undefined,
+    lift: computeLift(baseline, skill),
+    paired_analysis: summarizePairedBaselineSkill(results)
   };
 }
 
@@ -28,6 +38,7 @@ function summarizeCondition(results) {
       final_answer_accuracy: null,
       implicit_constraint_consideration_rate: null,
       explicit_constraint_enumeration_rate: null,
+      constraint_application_rate: null,
       hard_constraint_violation_rate: null,
       unnecessary_clarification_rate: null,
       over_enumeration_rate: null,
@@ -47,6 +58,8 @@ function summarizeCondition(results) {
       count(r => r.score.fields?.considers_binding_constraints_implicitly === true) / total,
     explicit_constraint_enumeration_rate:
       count(r => r.score.fields?.enumerates_binding_constraints_explicitly === true) / total,
+    constraint_application_rate:
+      count(r => r.score.fields?.applies_constraints_correctly === true) / total,
     hard_constraint_violation_rate: count(r => r.score.fields?.violates_hard_constraint === true) / total,
     unnecessary_clarification_rate: count(r => r.score.fields?.asks_unnecessary_clarification === true) / total,
     over_enumeration_rate: count(r => r.score.fields?.over_enumerates_irrelevant_constraints === true) / total,
@@ -69,8 +82,144 @@ function computeLift(baseline, skill) {
     implicit_constraint_consideration_rate_delta:
       skill.implicit_constraint_consideration_rate - baseline.implicit_constraint_consideration_rate,
     explicit_constraint_enumeration_rate_delta:
-      skill.explicit_constraint_enumeration_rate - baseline.explicit_constraint_enumeration_rate
+      skill.explicit_constraint_enumeration_rate - baseline.explicit_constraint_enumeration_rate,
+    constraint_application_rate_delta:
+      skill.constraint_application_rate - baseline.constraint_application_rate
   };
+}
+
+function summarizePairedBaselineSkill(results) {
+  const pairs = buildBaselineSkillPairs(results);
+
+  return {
+    pairs: pairs.length,
+    pass: summarizePairedBinary(
+      pairs,
+      pair => pair.baseline.score.pass === true,
+      pair => pair.skill.score.pass === true,
+      "skill_minus_baseline"
+    ),
+    constraint_failure_reduction: summarizePairedBinary(
+      pairs,
+      pair => pair.baseline.score.constraint_failure === true,
+      pair => pair.skill.score.constraint_failure === true,
+      "baseline_minus_skill"
+    )
+  };
+}
+
+function buildBaselineSkillPairs(results) {
+  const byKey = groupBy(results.filter(r => ["baseline", "skill"].includes(r.condition)), r => `${r.caseId}:${r.trial}`);
+  const pairs = [];
+
+  for (const group of Object.values(byKey)) {
+    const baseline = group.find(r => r.condition === "baseline");
+    const skill = group.find(r => r.condition === "skill");
+    if (baseline && skill) pairs.push({ baseline, skill });
+  }
+
+  return pairs;
+}
+
+function summarizePairedBinary(pairs, baselineFn, skillFn, deltaDirection) {
+  const n = pairs.length;
+
+  if (n === 0) {
+    return {
+      n_pairs: 0,
+      baseline_rate: null,
+      skill_rate: null,
+      mean_delta: null,
+      ci95_normal: null,
+      mcnemar: null,
+      delta_direction: deltaDirection
+    };
+  }
+
+  const baselineValues = pairs.map(pair => (baselineFn(pair) ? 1 : 0));
+  const skillValues = pairs.map(pair => (skillFn(pair) ? 1 : 0));
+
+  const baselineRate = mean(baselineValues);
+  const skillRate = mean(skillValues);
+  const deltas = pairs.map((_, i) =>
+    deltaDirection === "baseline_minus_skill"
+      ? baselineValues[i] - skillValues[i]
+      : skillValues[i] - baselineValues[i]
+  );
+
+  return {
+    n_pairs: n,
+    baseline_rate: baselineRate,
+    skill_rate: skillRate,
+    mean_delta: mean(deltas),
+    ci95_normal: normalCi95(deltas),
+    mcnemar: mcnemar(baselineValues, skillValues),
+    delta_direction: deltaDirection
+  };
+}
+
+function normalCi95(values) {
+  if (values.length < 2) return null;
+  const m = mean(values);
+  const variance = values.reduce((sum, value) => sum + (value - m) ** 2, 0) / (values.length - 1);
+  const se = Math.sqrt(variance / values.length);
+  return {
+    lower: m - 1.96 * se,
+    upper: m + 1.96 * se
+  };
+}
+
+function mcnemar(baselineValues, skillValues) {
+  let baselineFailSkillPass = 0;
+  let baselinePassSkillFail = 0;
+
+  for (let i = 0; i < baselineValues.length; i++) {
+    if (baselineValues[i] === 0 && skillValues[i] === 1) baselineFailSkillPass++;
+    if (baselineValues[i] === 1 && skillValues[i] === 0) baselinePassSkillFail++;
+  }
+
+  const discordant = baselineFailSkillPass + baselinePassSkillFail;
+
+  if (discordant === 0) {
+    return {
+      baseline_fail_skill_pass: baselineFailSkillPass,
+      baseline_pass_skill_fail: baselinePassSkillFail,
+      discordant_pairs: 0,
+      chi_square_continuity_corrected: null,
+      approximate_p_value: null
+    };
+  }
+
+  const chiSquare = ((Math.abs(baselineFailSkillPass - baselinePassSkillFail) - 1) ** 2) / discordant;
+
+  return {
+    baseline_fail_skill_pass: baselineFailSkillPass,
+    baseline_pass_skill_fail: baselinePassSkillFail,
+    discordant_pairs: discordant,
+    chi_square_continuity_corrected: chiSquare,
+    approximate_p_value: erfc(Math.sqrt(chiSquare / 2))
+  };
+}
+
+function erfc(x) {
+  // Abramowitz and Stegun approximation. Good enough for reporting an approximate McNemar p-value.
+  const z = Math.abs(x);
+  const t = 1 / (1 + z / 2);
+  const r = t * Math.exp(
+    -z * z -
+      1.26551223 +
+      t * (
+        1.00002368 +
+          t * (
+            0.37409196 +
+              t * (
+                0.09678418 +
+                  t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))
+              )
+          )
+      )
+  );
+  return x >= 0 ? r : 2 - r;
 }
 
 function marginWeight(margin) {
@@ -91,7 +240,8 @@ function marginWeight(margin) {
 export function summarizePairwise(pairwiseResults) {
   return {
     global: summarizePairwiseGroup(pairwiseResults),
-    by_category: summarizeByCategory(pairwiseResults, summarizePairwiseGroup)
+    by_category: summarizeBy(pairwiseResults, result => result.category || "uncategorized", summarizePairwiseGroup),
+    by_behavior_policy: summarizeBy(pairwiseResults, behaviorPolicyKey, summarizePairwiseGroup)
   };
 }
 
@@ -215,14 +365,30 @@ function emptyPairwiseSummary(total, validTotal, invalidRate) {
   };
 }
 
-function summarizeByCategory(results, summarizer) {
-  const byCategory = groupBy(results, result => result.category || "uncategorized");
+function summarizeBy(results, keyFn, summarizer) {
+  const byKey = groupBy(results, keyFn);
 
   return Object.fromEntries(
-    Object.entries(byCategory)
+    Object.entries(byKey)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([category, categoryResults]) => [category, summarizer(categoryResults)])
+      .map(([key, keyResults]) => [key, summarizer(keyResults)])
   );
+}
+
+function behaviorPolicyKey(result) {
+  if (result.requires_direct_answer === true && result.clarification_expected === false) {
+    return "direct_required";
+  }
+
+  if (result.requires_direct_answer === false && result.clarification_expected === true) {
+    return "clarification_expected";
+  }
+
+  if (result.requires_direct_answer === false && result.clarification_expected === false) {
+    return "either_acceptable";
+  }
+
+  return "unspecified";
 }
 
 function groupBy(items, keyFn) {
@@ -232,4 +398,8 @@ function groupBy(items, keyFn) {
     acc[key].push(item);
     return acc;
   }, {});
+}
+
+function mean(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }

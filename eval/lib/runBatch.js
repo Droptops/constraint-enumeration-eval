@@ -7,7 +7,9 @@ import {
   getDoubleSwappedPairwise,
   getJudgeModel,
   getJudgeProvider,
-  getJudgeTemperature
+  getJudgeTemperature,
+  getEvalConditions,
+  isSameVendorJudge
 } from "./config.js";
 import { loadSkillPrompt } from "./loadSkill.js";
 import { generateAnswer } from "./runCase.js";
@@ -134,11 +136,14 @@ export async function runBatch({
   log(`Answer model: ${getAnswerModel()} @ T=${getAnswerTemperature()}`);
   log(`Judge provider: ${getJudgeProvider()}`);
   log(`Judge model: ${getJudgeModel()} @ T=${getJudgeTemperature()}`);
+  if (isSameVendorJudge()) {
+    log("WARNING: same-vendor judge path. Treat results as directional unless confirmed by another judge family.");
+  }
   log(`Existing absolute results: ${absoluteResults.length}`);
 
   for (const testCase of cases) {
     for (let trial = 1; trial <= trials; trial++) {
-      for (const condition of ["baseline", "skill"]) {
+      for (const condition of getEvalConditions()) {
         const key = resultKey({ caseId: testCase.id, condition, trial });
 
         if (absoluteState.completedKeys.has(key)) {
@@ -160,6 +165,8 @@ export async function runBatch({
           prompt: testCase.prompt,
           expected_final_answer: testCase.expected_final_answer,
           acceptable_final_answers: testCase.acceptable_final_answers,
+          requires_direct_answer: testCase.requires_direct_answer,
+          clarification_expected: testCase.clarification_expected,
           skill_sha256: skillHash,
           cases_sha256: casesHash,
           answer,
@@ -216,6 +223,8 @@ export async function runBatch({
             caseId: testCase.id,
             category: testCase.category,
             trial,
+            requires_direct_answer: testCase.requires_direct_answer,
+            clarification_expected: testCase.clarification_expected,
             mode,
             position_order: positionOrder,
             skill_sha256: skillHash,
@@ -248,6 +257,9 @@ export async function runBatch({
     judge_model: getJudgeModel(),
     answer_temperature: getAnswerTemperature(),
     judge_temperature: getJudgeTemperature(),
+    publishability_warning: isSameVendorJudge()
+      ? "Default judge path is same-vendor Anthropic cross-tier. Treat as directional unless confirmed by a second judge family."
+      : null,
     double_swapped_pairwise: getDoubleSwappedPairwise(),
     skill_sha256: skillHash,
     cases_sha256: casesHash,

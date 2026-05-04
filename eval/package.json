@@ -12,7 +12,8 @@
     "smoke": "node scripts/copy-skill.js && node scripts/smoke-test.js",
     "lint": "next lint",
     "check:esm": "! grep -r \"require(\" lib scripts pages",
-    "prestart": "node scripts/copy-skill.js"
+    "prestart": "node scripts/copy-skill.js",
+    "rejudge": "node scripts/copy-skill.js && node scripts/rejudge-existing.js"
   },
   "dependencies": {
     "next": "latest",

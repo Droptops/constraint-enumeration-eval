@@ -220,7 +220,7 @@ export async function judgePairwise({
   const result = await callJudgeModel({
     system: "You are a strict pairwise evaluator. Return only the requested structured judgment.",
     prompt,
-    maxTokens: 1000,
+    maxTokens: 1600,
     temperature: getJudgeTemperature(),
     outputConfig: pairwiseOutputConfig,
     schemaName: "pairwise_judge"

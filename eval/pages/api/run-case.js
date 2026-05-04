@@ -1,5 +1,5 @@
 import { requireAuth } from "../../lib/auth.js";
-import { getAnswerModel, getAnswerTemperature, getJudgeModel, getJudgeTemperature } from "../../lib/config.js";
+import { getAnswerModel, getAnswerTemperature, getEvalConditions, getJudgeModel, getJudgeTemperature } from "../../lib/config.js";
 import { loadCaseById } from "../../lib/loadCases.js";
 import { generateAnswer } from "../../lib/runCase.js";
 import { judgeAnswer } from "../../lib/judge.js";
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing or invalid caseId" });
     }
 
-    if (!["baseline", "skill"].includes(condition)) {
+    if (!getEvalConditions().includes(condition)) {
       return res.status(400).json({ error: "Invalid condition" });
     }
 
