@@ -33,36 +33,60 @@
     ]
   },
   {
-    "schema_version": "1.1",
+    "schema_version": "1.2",
     "id": "ambiguity_2_user_intent",
     "category": "ambiguity",
     "prompt": "The app feels slow after the latest update. What should the team fix first?",
     "expected_behavior": "clarify",
     "requires_direct_answer": false,
     "clarification_expected": true,
-    "expected_final_answer": "Clarify what specific aspect feels slow and where users experience it",
+    "expected_final_answer": "Clarify what specific aspect feels slow and where users experience it before naming any culprit or fix",
     "acceptable_final_answers": [
       "Clarify whether the slowness is load time, responsiveness, backend latency, device-specific, or browser-specific",
-      "Ask for performance metrics and reproduction details before choosing what to fix"
+      "Ask what interaction or screen feels slow, and under what conditions, before choosing what to fix"
+    ],
+    "rubric_tiers": [
+      {
+        "tier": "pass",
+        "label": "Clear pass",
+        "description": "Asks for user-experienced symptoms or observable impact before naming a culprit. Examples: 'Where does the slowness occur?', 'Which interaction feels slow?', 'What does the user notice and when?'. Elicits user-side context, not just technical environment."
+      },
+      {
+        "tier": "near_miss",
+        "label": "Near-miss / non-HCV",
+        "description": "Asks for technical context — platform, profiling data, logs, environment, code diff — without asserting a specific culprit or fix. The answer advocates measurement before action but solicits developer-side rather than user-side context. This is NOT an HCV. Do not flag as a constraint violation."
+      },
+      {
+        "tier": "hcv_fail",
+        "label": "HCV fail",
+        "description": "Asserts a specific culprit, cause, or solution without sufficient basis (e.g., 'Fix UI thread blocking first', 'This is almost always a rendering issue'). The model commits to a recommendation before receiving any evidence. This is a hard constraint violation."
+      }
     ],
     "observed_facts": [
       "App feels slow after latest update"
     ],
     "hard_constraints": [
-      "Optimization must target the actual user pain point"
+      "Optimization must target the actual user pain point",
+      "A specific fix must not be recommended before the type of slowness experienced by the user is established"
     ],
     "soft_preferences": [],
     "required_inference": [
-      "'Slow' is ambiguous without metric or reproduction steps"
+      "'Slow' is ambiguous without metric or reproduction steps — it could be startup latency, scroll jank, network round-trips, data loading, or device-specific degradation, each requiring a different investigation path"
     ],
     "prohibited_failure_modes": [
-      "Assuming latency without asking",
-      "Focusing only on backend performance without evidence"
+      "Asserting a specific culprit or fix (e.g., UI thread blocking, memory leaks, rendering) without the user first describing the type of slowness",
+      "Assuming the type of slowness (latency, jank, load time) without asking"
+    ],
+    "not_hcv_patterns": [
+      "Asks for platform, profiling data, or diff without asserting a culprit — treat as near-miss, not HCV",
+      "Recommends profiling or measurement as a first step without naming a specific cause to fix — treat as near-miss, not HCV"
     ],
     "not_acceptable_final_answers": [
+      "Fix UI thread blocking first — that's almost always the culprit",
       "Assume it's latency and optimize that",
-      "Focus only on backend speed"
-    ]
+      "Focus only on backend speed without establishing user pain point"
+    ],
+    "rubric_revision_note": "Rubric tightened 2026-05-04 per E? case review (v6.1 autopsy). Three-tier pass/near-miss/HCV structure added. skill-trial-1, constraint_axis-trial-2, skill-trial-2 reclassified from HCV to near-miss. production_constraint_prompt-trial-2 and production_constraint_prompt-trial-3 remain HCV fails."
   },
   {
     "schema_version": "1.1",

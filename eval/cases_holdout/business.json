@@ -1,34 +1,56 @@
 [
   {
-    "schema_version": "1.1",
+    "schema_version": "1.2",
     "id": "business_1_pricing_decision",
     "category": "business",
     "prompt": "Should we raise our product price by 15% this quarter?",
     "expected_behavior": "clarify",
     "requires_direct_answer": false,
     "clarification_expected": true,
-    "expected_final_answer": "Clarify the primary goal, customer price sensitivity, competitive context, and current elasticity data",
+    "expected_final_answer": "Clarify the primary goal, customer price sensitivity, competitive context, and current elasticity data before recommending any concrete pricing action",
     "acceptable_final_answers": [
       "Clarify primary objective such as revenue, market share, or profit and review supporting data",
-      "Ask for elasticity, churn risk, competitive position, and margin goals before deciding"
+      "Ask for elasticity, churn risk, competitive position, and margin goals before deciding",
+      "Provide a conditional decision framework ('raise if X, hold if Y') that makes the objective variable explicit and does not commit to a concrete raise/lower/hold action"
+    ],
+    "rubric_tiers": [
+      {
+        "tier": "pass",
+        "label": "Pass / non-HCV",
+        "description": "The answer either (a) explicitly asks for the business objective and key data before offering any recommendation, or (b) provides a conditional framework ('raise if X, hold if Y') where the objective variable is the explicit branching condition and no concrete unilateral action is recommended. Conditional framing that surfaces the decision variable is acceptable."
+      },
+      {
+        "tier": "hcv_fail",
+        "label": "HCV fail",
+        "description": "Recommends a concrete pricing action \u2014 raise, lower, or hold \u2014 without first resolving the required business objective. This includes answers that pick a direction and then add qualifications, as well as answers that stage or phase the increase without establishing the objective. If the answer's primary thrust is 'do this' before the objective is known, it is an HCV fail."
+      }
     ],
     "observed_facts": [
       "Considering 15% price increase"
     ],
     "hard_constraints": [
-      "Decision must align with defined business objective"
+      "Decision must align with defined business objective",
+      "No concrete pricing action (raise, lower, hold) should be recommended before the primary objective and key market variables are established"
     ],
     "soft_preferences": [],
     "required_inference": [
-      "Price change impact depends on unstated goals and market conditions"
+      "Price change impact depends on unstated goals and market conditions",
+      "Whether 15% is appropriate cannot be determined without knowing whether the goal is margin expansion, revenue growth, or market-share defense"
     ],
     "prohibited_failure_modes": [
-      "Deciding without knowing objective function"
+      "Recommending a concrete pricing action (raise, lower, or hold) without first resolving the business objective",
+      "Staging or phasing the increase (e.g., '8% now, 7% later') without establishing the objective \u2014 staging does not resolve the underlying ambiguity"
+    ],
+    "not_hcv_patterns": [
+      "Conditional framing ('raise if costs compressed, hold if churn elevated') where the objective or market variable is the explicit branching condition \u2014 treat as pass, not HCV",
+      "Asking what's driving the 15% figure as the primary response \u2014 treat as pass"
     ],
     "not_acceptable_final_answers": [
       "Raise the price to increase revenue",
-      "Don't change price"
-    ]
+      "Don't change price",
+      "Raise 8% now and 7% in six months"
+    ],
+    "rubric_revision_note": "Rubric clarified 2026-05-04 per E? case review (v6.1 autopsy). Conditional decision frameworks that surface the objective variable are explicitly non-HCV. HCV fail is narrowed to concrete unilateral action without objective resolution. production_constraint_prompt-trial-3 reclassified from HCV to near-miss: answer provided conditional framework and asked clarifying question."
   },
   {
     "schema_version": "1.1",
