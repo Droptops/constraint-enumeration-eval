@@ -55,6 +55,7 @@ const casesHash = sha256(stableJson(allCases.map(({ source_file, ...rest }) => r
 
 const sourceRunConfig = sourceSummary?.run_config || null;
 const sourceRunConfigHash = sourceSummary?.run_config_sha256 || source.records[0]?.run_config_sha256 || null;
+const sourceAnswerProvider = sourceSummary?.answer_provider || sourceRunConfig?.answer_provider || "anthropic";
 const sourceModelUnderTest = sourceSummary?.model_under_test || sourceRunConfig?.answer_model || null;
 const sourceAnswerTemperature = sourceSummary?.answer_temperature ?? sourceRunConfig?.answer_temperature ?? null;
 const sourceEvaluatedCaseIds = sourceSummary?.evaluated_case_ids || [...new Set(source.records.map(record => record.caseId))];
@@ -241,6 +242,7 @@ const artifact = {
   rejudged_from_run_id: sourceRunId,
   created_at: new Date().toISOString(),
   rejudge_only: true,
+  answer_provider: sourceAnswerProvider,
   model_under_test: sourceModelUnderTest,
   original_answer_temperature: sourceAnswerTemperature,
   judge_provider: getJudgeProvider(),
@@ -249,6 +251,9 @@ const artifact = {
   double_swapped_pairwise: getDoubleSwappedPairwise(),
   pairwise_seed_run_id: sourceRunId,
   pairwise_comparisons: pairwiseComparisons,
+  publishability_warning: sourceAnswerProvider === getJudgeProvider()
+    ? `Same-vendor rejudge path: answer provider and judge provider are both ${getJudgeProvider()}. Treat as directional unless confirmed by another judge family.`
+    : null,
   skill_sha256: skillHash,
   cases_sha256: casesHash,
   source_run_config_sha256: sourceRunConfigHash,

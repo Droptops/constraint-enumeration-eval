@@ -1,6 +1,6 @@
 {
   "name": "constraint-enumeration-eval",
-  "version": "0.5.1",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -22,7 +22,11 @@
     "export:human-review": "node scripts/export-human-review.js",
     "report": "node scripts/report-summary.js",
     "eval:breakthrough": "node scripts/copy-skill.js && CASE_DIR=${CASE_DIR:-cases_holdout} PRIMARY_CONDITION=${PRIMARY_CONDITION:-production_constraint_prompt} EVAL_CONDITIONS=${EVAL_CONDITIONS:-baseline,careful_control,constraint_axis_prompting,style_matched_baseline,skill,production_constraint_prompt} PAIRWISE_COMPARISONS=${PAIRWISE_COMPARISONS:-production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill} TRIALS=${TRIALS:-3} node scripts/run-eval.js",
-    "eval": "node scripts/copy-skill.js && node scripts/run-eval.js"
+    "eval": "node scripts/copy-skill.js && node scripts/run-eval.js",
+    "eval:frontier-matrix": "node scripts/copy-skill.js && node scripts/run-frontier-matrix.js",
+    "report:frontier": "node scripts/frontier-report.js",
+    "eval:frontier-dry-run": "DRY_RUN=true node scripts/run-frontier-matrix.js",
+    "check:large-holdout": "CASE_DIR=cases_holdout_large npm run check:cases"
   },
   "dependencies": {
     "next": "16.2.4",

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import {
+  getAnswerProvider,
   getAnswerModel,
   getAnswerTemperature,
   getDoubleSwappedPairwise,
@@ -164,6 +165,7 @@ export async function runBatch({
   log(`Case corpus hashed: ${allCasesForHash.length}`);
   log(`Categories: ${[...new Set(cases.map(c => c.category))].join(", ")}`);
   log(`Trials: ${trials}`);
+  log(`Answer provider: ${getAnswerProvider()}`);
   log(`Answer model: ${getAnswerModel()} @ T=${getAnswerTemperature()}`);
   log(`Judge provider: ${getJudgeProvider()}`);
   log(`Judge model: ${getJudgeModel()} @ T=${getJudgeTemperature()}`);
@@ -314,6 +316,7 @@ export async function runBatch({
     run_id: runId,
     created_at: new Date().toISOString(),
     smoke_test: smokeTest,
+    answer_provider: getAnswerProvider(),
     model_under_test: getAnswerModel(),
     judge_provider: getJudgeProvider(),
     judge_model: getJudgeModel(),

@@ -4,19 +4,38 @@ Constraint Enumeration is a decision-quality eval for real-world prompts where a
 
 This repo evaluates whether a constraint-first system prompt reduces those failures relative to plain, careful, constraint-axis, style-matched, and no-enumeration controls.
 
-## Current release: v5.1
+## Current release: v6.1
 
-v5.1 is the breakthrough-matrix release. It includes the v4.0 publishability hardening, the v5.0 production-prompt breakthrough harness, and v5.1 fixes for primary-condition reporting, rejudge command reproducibility, gate sensitivity, report output, and OpenAI extractor cleanup.
+v6.1 is the frontier-lab threshold release. It keeps the v5.1 production-prompt harness and adds the pieces needed to test whether the effect is large enough to matter to a frontier lab or production AI team.
 
-New in v5.1:
+New in v6.1:
 
-- `paired_analysis` / `paired_delta_summary` now follow `PRIMARY_CONDITION` versus `baseline` instead of hardcoding `skill - baseline`.
-- Gate sensitivity now includes `primary_minus_*` rows, so `production_constraint_prompt` runs show alternate-gate robustness directly.
-- Cross-vendor rejudge documentation now includes `CASE_DIR`, `PRIMARY_CONDITION`, and matching `PAIRWISE_COMPARISONS` to avoid cases-hash mismatches.
-- `npm run report` now prints length-quartile pass-rate breakdowns and primary-condition gate sensitivity.
-- OpenAI text extraction now uses extracted output blocks only and skips reasoning/refusal blocks explicitly.
+Critical v6.1 fixes:
 
-New in v5.0:
+- Same-vendor judge warnings now compare the configured answer provider and judge provider across Anthropic, OpenAI, and Google/Gemini.
+- Frontier reports now require `LAB_MANIFEST`; they no longer scan every historical summary in `results/`.
+- Default `PRIMARY_CONDITION` is now `production_constraint_prompt`, matching the frontier matrix runner.
+- The matrix runner skips compatible completed summaries on restart and writes a partial manifest after each completed run. Use `FORCE_RERUN=true` to override.
+
+
+- Added `ANSWER_PROVIDER` support for Anthropic, OpenAI, and Gemini/Google answer models, not just Anthropic answer generation.
+- Added `eval/lib/answerModel.js` with shared answer-model dispatch, retries, OpenAI reasoning/refusal handling, and Gemini extraction.
+- Added `npm run eval:frontier-matrix` to run multiple answer-model specs and automatically rejudge each run across multiple judge families.
+- Added `npm run eval:frontier-dry-run` to print the exact matrix commands before spending API budget.
+- Added `npm run report:frontier` to summarize whether the primary prompt beats the strongest serious control, not just baseline.
+- Added `FRONTIER_LAB_PROTOCOL.md` with the 100-300 case benchmark plan, cross-vendor judging, cheaper-model comparison, and human-review workflow.
+- Added `cases_holdout_large/README.md` as the landing zone for independently authored 100+ case corpora.
+- Updated model-access checks to validate answer, judge, and optional style-rewrite models across Anthropic/OpenAI/Gemini.
+
+Included from v5.1:
+
+- `paired_analysis` / `paired_delta_summary` follow `PRIMARY_CONDITION` versus `baseline` instead of hardcoding `skill - baseline`.
+- Gate sensitivity includes `primary_minus_*` rows, so `production_constraint_prompt` runs show alternate-gate robustness directly.
+- Cross-vendor rejudge documentation includes `CASE_DIR`, `PRIMARY_CONDITION`, and matching `PAIRWISE_COMPARISONS` to avoid cases-hash mismatches.
+- `npm run report` prints length-quartile pass-rate breakdowns and primary-condition gate sensitivity.
+- OpenAI text extraction uses extracted output blocks only and skips reasoning/refusal blocks explicitly.
+
+Included from v5.0:
 
 - Added `production_constraint_prompt` and `SKILL_PRODUCTION.md`.
 - Added arbitrary pairwise comparisons through `PAIRWISE_COMPARISONS`.
@@ -26,21 +45,9 @@ New in v5.0:
 
 Included from v4.0:
 
-- Added `constraint_axis_prompting` control: primes broad constraint categories without the protocol or enumeration order.
-- Added `style_matched_baseline` control: rewrites the baseline answer into enumerated style without changing the baseline decision.
-- Default pass gate no longer depends on `considers_binding_constraints_implicitly`; that field is now diagnostic only.
-- Added gate-sensitivity tables for alternate pass gates.
-- Added case-level bootstrap confidence intervals for paired binary deltas; normal CIs are retained as diagnostics only.
-- Added length-quartile pass-rate breakdowns, plus p50/p90 answer-length stats.
-- Added answer truncation tracking from the answer-generation stop reason.
-- Added Gemini/Google as a third judge-provider path in addition to Anthropic and OpenAI.
-- Updated the default OpenAI judge model to `gpt-5.1`; verify account access with `npm run check:models`.
-- Added explicit `not_acceptable_final_answers` to case schema normalization and judge prompts.
-- Hardened judge prompts against answer-delimiter injection by serializing candidate answers as JSON strings instead of XML-like tags.
-- Added explicit OpenAI refusal/reasoning-block handling.
-- Replaced object-backed grouping with null-prototype grouping.
-- Added Node 20+ engine requirement, package lock, unit tests, and GitHub Actions CI.
-- Added `CASE_DIR` support for independently authored held-out case folders.
+- Added `constraint_axis_prompting` and `style_matched_baseline` controls.
+- Default pass gate no longer depends on `considers_binding_constraints_implicitly`; that field is diagnostic only.
+- Added gate-sensitivity tables, case-level bootstrap CIs, length-quartile pass-rate breakdowns, p50/p90 answer-length stats, answer truncation tracking, Gemini judge support, `not_acceptable_final_answers`, delimiter-injection hardening, OpenAI refusal/reasoning handling, null-prototype grouping, Node 20+, package lock, unit tests, GitHub Actions CI, and `CASE_DIR` support.
 
 ## Core claim being tested
 
@@ -82,103 +89,108 @@ npm run smoke
 
 `npm run check:models` requires valid API keys. It verifies that the configured answer and judge model IDs are actually available to your account.
 
-## Recommended publishable run
+## Recommended frontier-lab run
 
-For a real write-up, do not headline `skill - baseline`. Headline `skill - careful_control` and report the full ablation matrix.
+For a lab-relevant result, do not headline `primary - baseline`. Headline `primary - strongest serious control`, where the serious controls are usually `careful_control`, `constraint_axis_prompting`, and the full `skill`.
+
+First generate and review the exact command matrix without spending API budget:
 
 ```bash
 cd eval
-EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise \
-DOUBLE_SWAPPED_PAIRWISE=true \
-SMOKE_TRIALS=3 \
-RUN_ID=main-v5-anthropic \
-npm run smoke
+CASE_DIR=cases_holdout_large \
+TRIALS=3 \
+LAB_ANSWER_SPECS=anthropic:claude-sonnet-4-6 \
+LAB_JUDGE_SPECS=anthropic:claude-opus-4-7,openai:gpt-5.1,google:gemini-2.5-pro \
+npm run eval:frontier-dry-run
 ```
 
-Then rejudge the same saved answers with OpenAI. Use the same `CASE_DIR`, `PRIMARY_CONDITION`, and `PAIRWISE_COMPARISONS` as the source run, otherwise resume/case hashing can correctly abort:
+Then run it:
 
 ```bash
-SOURCE_RUN_ID=main-v5-anthropic \
-RUN_ID=main-v5-openai-rejudge \
-CASE_DIR=cases_holdout \
-JUDGE_PROVIDER=openai \
-OPENAI_JUDGE_MODEL=gpt-5.1 \
+CASE_DIR=cases_holdout_large \
+TRIALS=3 \
 PRIMARY_CONDITION=production_constraint_prompt \
+EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,style_matched_baseline,skill,production_constraint_prompt \
 PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill \
-DOUBLE_SWAPPED_PAIRWISE=true \
-npm run rejudge
+LAB_ANSWER_SPECS=anthropic:claude-sonnet-4-6 \
+LAB_JUDGE_SPECS=anthropic:claude-opus-4-7,openai:gpt-5.1,google:gemini-2.5-pro \
+npm run eval:frontier-matrix
 ```
 
-And optionally with Gemini/Google as a third judge family:
+Generate the lab threshold report from the manifest printed by the matrix runner:
 
 ```bash
-SOURCE_RUN_ID=main-v5-anthropic \
-RUN_ID=main-v5-gemini-rejudge \
-CASE_DIR=cases_holdout \
-JUDGE_PROVIDER=google \
-GEMINI_JUDGE_MODEL=gemini-2.5-pro \
-PRIMARY_CONDITION=production_constraint_prompt \
-PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill \
-DOUBLE_SWAPPED_PAIRWISE=true \
-npm run rejudge
+LAB_MANIFEST=results/<frontier-lab-run>.manifest.json npm run report:frontier
 ```
 
-The rejudge path keeps the original answer model and answer temperature in the summary artifact. It also uses `SOURCE_RUN_ID` for pairwise A/B order seeding so the rejudge sees the same answer ordering as the source run unless double-swapping is explicitly used.
+For a cheaper-model comparison, add a second answer model to `LAB_ANSWER_SPECS`, for example:
+
+```bash
+LAB_ANSWER_SPECS=anthropic:claude-sonnet-4-6,openai:gpt-5.1,google:gemini-2.5-pro \
+npm run eval:frontier-matrix
+```
+
+The frontier-lab threshold is roughly: 100+ independently authored cases, primary prompt beats the strongest serious control by 5-10pp, bootstrap CI is directionally positive or excludes zero, hard-constraint violations fall materially, answer length does not rise, and the direction holds under multiple judge families.
 
 ## Held-out cases
 
-The included `eval/cases` corpus is an in-sample development set. Do not make a strong public claim from it alone.
+The included `eval/cases` corpus is an in-sample development set. The included `eval/cases_holdout` folder is a 20-case pilot. Use `eval/cases_holdout_large` for 100-300 independently authored cases.
 
-For a defensible public claim:
+Create a larger held-out case-generation prompt with:
 
 ```bash
-CASE_DIR=cases_holdout \
-EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise \
-DOUBLE_SWAPPED_PAIRWISE=true \
-SMOKE_TRIALS=3 \
-RUN_ID=heldout-v4-anthropic \
-npm run smoke
+cd eval
+NUM_CASES=100 npm run make:large-holdout-prompt
 ```
 
-Author 15-20 held-out cases without looking at `SKILL.md`, or use external decision-trap sources filtered into the schema. Report the held-out delta as the headline and the in-sample delta as a sanity check.
+Give the printed prompt to a separate person or model that has not read `SKILL.md` or `SKILL_PRODUCTION.md`. Then save four JSON arrays into:
+
+```text
+eval/cases_holdout_large/physical.json
+eval/cases_holdout_large/ambiguity.json
+eval/cases_holdout_large/business.json
+eval/cases_holdout_large/safety.json
+```
+
+Validate with:
+
+```bash
+CASE_DIR=cases_holdout_large npm run check:cases
+```
 
 ## Environment variables
 
-Create `eval/.env.local`:
+Create `eval/.env.local`. The complete template is in `eval/.env.example`; the minimal frontier matrix configuration is:
 
 ```bash
+ANSWER_PROVIDER=anthropic
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=claude-sonnet-4-6
-JUDGE_PROVIDER=anthropic
-JUDGE_MODEL=claude-opus-4-7
 ANTHROPIC_VERSION=2023-06-01
-ANSWER_TEMPERATURE=0
-JUDGE_TEMPERATURE=0
-EVAL_ADMIN_TOKEN=
-DOUBLE_SWAPPED_PAIRWISE=false
 
 OPENAI_API_KEY=
-OPENAI_JUDGE_MODEL=gpt-5.1
+OPENAI_ANSWER_MODEL=gpt-5.1
 
 GEMINI_API_KEY=
+GEMINI_ANSWER_MODEL=gemini-2.5-pro
+
+JUDGE_PROVIDER=anthropic
+JUDGE_MODEL=claude-opus-4-7
+OPENAI_JUDGE_MODEL=gpt-5.1
 GEMINI_JUDGE_MODEL=gemini-2.5-pro
 
-STYLE_REWRITE_MODEL=claude-sonnet-4-6
+ANSWER_TEMPERATURE=0
+JUDGE_TEMPERATURE=0
 
-# Optional. Must include baseline and skill.
-# Allowed: baseline,careful_control,step_by_step_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise
-# EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,constraint_check_no_enumeration,style_matched_baseline,skill,skill_concise
+PRIMARY_CONDITION=production_constraint_prompt
+EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,style_matched_baseline,skill,production_constraint_prompt
+PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill
 
-# Optional alternate case folder.
-# CASE_DIR=cases_holdout
-
-# Legacy shorthand for baseline,careful_control,skill when EVAL_CONDITIONS is unset.
-INCLUDE_LENGTH_CONTROL=false
+CASE_DIR=cases_holdout_large
+TRIALS=3
 ```
 
-Temperature handling is provider/model-aware. Anthropic answer-model temperatures are validated in `[0, 1]`; OpenAI judge temperatures are validated in `[0, 2]`. Sampling parameters are omitted for Claude Opus 4.7 and conservative OpenAI reasoning-family judge models such as `o1`, `o3`, `o4`, and `gpt-5*` to avoid model-family 400s.
-
-Development servers are unauthenticated when `EVAL_ADMIN_TOKEN` is unset outside production. Do not expose `next dev` publicly without setting a token.
+Temperature handling is provider/model-aware. Some OpenAI reasoning models reject sampling parameters, so the request builder omits temperature when required.
 
 ## Case set
 
@@ -399,9 +411,9 @@ case loading and normalization
 
 Any of the following should be treated as a serious negative result:
 
-- `skill` beats `baseline` but not `careful_control`.
-- `skill` beats `baseline` but not `constraint_axis_prompting`.
-- `style_matched_baseline` reaches skill-like pass rates without changing the baseline decision.
+- The primary prompt beats `baseline` but not `careful_control`.
+- The primary prompt beats `baseline` but not `constraint_axis_prompting`.
+- `style_matched_baseline` reaches primary-prompt-like pass rates without changing the baseline decision.
 - The lift disappears under OpenAI or Gemini rejudging.
 - The lift exists only in the longest answer-length quartile.
 - Held-out cases show materially smaller or reversed lift relative to the in-sample corpus.
@@ -414,7 +426,7 @@ Before making a public claim:
 1. Freeze SKILL.md and case corpus.
 2. Add an independently authored held-out set via CASE_DIR.
 3. Run at least 3 trials per condition.
-4. Include careful_control, constraint_axis_prompting, constraint_check_no_enumeration, style_matched_baseline, skill, and skill_concise.
+4. Include baseline, careful_control, constraint_axis_prompting, style_matched_baseline, skill, and production_constraint_prompt.
 5. Use double-swapped pairwise judging.
 6. Rejudge with at least one non-Anthropic judge; preferably OpenAI and Gemini.
 7. Report bootstrap CIs over case-level paired deltas.
@@ -427,28 +439,16 @@ Before making a public claim:
 
 MIT
 
-## v5: Breakthrough matrix
+## v6: Frontier-lab matrix
 
-v5 adds a production-oriented constraint prompt and a stronger matrix for testing whether the effect is real rather than just style or generic carefulness.
+v6 adds cross-provider answer generation and an orchestration layer for lab-relevant runs. Use `FRONTIER_LAB_PROTOCOL.md` when you want to test the threshold that would make a frontier lab care: 100-300 independently authored cases, multiple answer models, multiple judge families, strongest-control reporting, and optional human blind review.
 
-New condition:
-
-```text
-production_constraint_prompt
-```
-
-Recommended breakthrough run:
+Common commands:
 
 ```bash
 cd eval
-CASE_DIR=cases_holdout \
-TRIALS=3 \
-PRIMARY_CONDITION=production_constraint_prompt \
-EVAL_CONDITIONS=baseline,careful_control,constraint_axis_prompting,style_matched_baseline,skill,production_constraint_prompt \
-PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill \
-npm run eval
+NUM_CASES=100 npm run make:large-holdout-prompt
+DRY_RUN=true CASE_DIR=cases_holdout_large npm run eval:frontier-matrix
+CASE_DIR=cases_holdout_large npm run eval:frontier-matrix
+LAB_MANIFEST=results/<manifest>.json npm run report:frontier
 ```
-
-For larger claims, create `eval/cases_holdout_large/` with 100-200 independently authored cases and run the same matrix with `CASE_DIR=cases_holdout_large`.
-
-Use `BREAKTHROUGH_PROTOCOL.md` for the full protocol, cross-vendor rejudge commands, and human-review workflow.

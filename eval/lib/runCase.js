@@ -1,9 +1,11 @@
-import { callClaude } from "./anthropic.js";
+import { callAnswerModel } from "./answerModel.js";
 import {
   getAnswerModel,
+  getAnswerProvider,
   getAnswerTemperature,
   getEvalConditions,
-  getStyleRewriteModel
+  getStyleRewriteModel,
+  getStyleRewriteProvider
 } from "./config.js";
 import { loadSkillPrompt } from "./loadSkill.js";
 
@@ -65,7 +67,8 @@ export async function generateAnswerResult({ testCase, condition, baselineAnswer
     return await generateStyleMatchedBaseline({ testCase, baselineAnswer });
   }
 
-  const result = await callClaude({
+  const result = await callAnswerModel({
+    provider: getAnswerProvider(),
     model: getAnswerModel(),
     system: systemForCondition(condition),
     messages: [
@@ -97,7 +100,8 @@ async function generateStyleMatchedBaseline({ testCase, baselineAnswer }) {
 
   const prompt = `Prompt:\n${testCase.prompt}\n\nBaseline answer to rewrite without changing the decision:\n${sourceAnswer}`;
 
-  const result = await callClaude({
+  const result = await callAnswerModel({
+    provider: getStyleRewriteProvider(),
     model: getStyleRewriteModel(),
     system: STYLE_MATCHED_REWRITE_SYSTEM,
     messages: [
@@ -112,6 +116,7 @@ async function generateStyleMatchedBaseline({ testCase, baselineAnswer }) {
 
   return normalizeAnswerResult(result, {
     generation_kind: "style_matched_rewrite",
+    style_rewrite_provider: getStyleRewriteProvider(),
     style_rewrite_model: getStyleRewriteModel(),
     source_condition: "baseline",
     source_was_generated_inline: sourceWasGeneratedInline

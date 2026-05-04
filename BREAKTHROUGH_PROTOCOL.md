@@ -1,5 +1,8 @@
 # Breakthrough Protocol
 
+> For the full v6 frontier-lab matrix with cross-provider answer models and multi-judge orchestration, use `FRONTIER_LAB_PROTOCOL.md`. This file is retained for the simpler single-answer-model breakthrough workflow.
+
+
 This repo can now test whether a short production constraint prompt is a real decision-reliability improvement or just a nicer style.
 
 ## What would count as a strong result

@@ -1,4 +1,11 @@
-import { getAnswerModel, getJudgeModel, getJudgeProvider } from "../lib/config.js";
+import {
+  getAnswerModel,
+  getAnswerProvider,
+  getJudgeModel,
+  getJudgeProvider,
+  getStyleRewriteModel,
+  getStyleRewriteProvider
+} from "../lib/config.js";
 
 const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
 const OPENAI_MODELS_URL = "https://api.openai.com/v1/models";
@@ -77,22 +84,31 @@ async function checkGeminiModel(modelId, label) {
   return await response.json();
 }
 
-const answerModel = getAnswerModel();
-const judgeProvider = getJudgeProvider();
-const judgeModel = getJudgeModel();
+async function checkProviderModel(provider, model, label) {
+  if (provider === "anthropic") {
+    const found = await checkAnthropicModel(model, label);
+    console.log(`OK Anthropic ${label} model: ${found.id}`);
+    return;
+  }
 
-const answer = await checkAnthropicModel(answerModel, "answer");
-console.log(`OK Anthropic answer model: ${answer.id}`);
+  if (provider === "openai") {
+    const found = await checkOpenAIModel(model, label);
+    console.log(`OK OpenAI ${label} model: ${found.id}`);
+    return;
+  }
 
-if (judgeProvider === "anthropic") {
-  const judge = await checkAnthropicModel(judgeModel, "judge");
-  console.log(`OK Anthropic judge model: ${judge.id}`);
-} else if (judgeProvider === "openai") {
-  const judge = await checkOpenAIModel(judgeModel, "judge");
-  console.log(`OK OpenAI judge model: ${judge.id}`);
-} else if (judgeProvider === "google" || judgeProvider === "gemini") {
-  const judge = await checkGeminiModel(judgeModel, "judge");
-  console.log(`OK Gemini judge model: ${judge.name || judgeModel}`);
-} else {
-  throw new Error(`Unsupported JUDGE_PROVIDER: ${judgeProvider}`);
+  if (provider === "google" || provider === "gemini") {
+    const found = await checkGeminiModel(model, label);
+    console.log(`OK Gemini ${label} model: ${found.name || model}`);
+    return;
+  }
+
+  throw new Error(`Unsupported provider for ${label}: ${provider}`);
+}
+
+await checkProviderModel(getAnswerProvider(), getAnswerModel(), "answer");
+await checkProviderModel(getJudgeProvider(), getJudgeModel(), "judge");
+
+if (process.env.CHECK_STYLE_REWRITE_MODEL === "true") {
+  await checkProviderModel(getStyleRewriteProvider(), getStyleRewriteModel(), "style rewrite");
 }

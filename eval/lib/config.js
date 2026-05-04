@@ -1,4 +1,4 @@
-const DEFAULT_EVAL_CONDITIONS = ["baseline", "skill"];
+const DEFAULT_EVAL_CONDITIONS = ["baseline", "production_constraint_prompt"];
 const LEGACY_INCLUDE_LENGTH_CONTROL_CONDITIONS = ["baseline", "careful_control", "skill"];
 const ALL_EVAL_CONDITIONS = [
   "baseline",
@@ -13,7 +13,9 @@ const ALL_EVAL_CONDITIONS = [
 ];
 
 export function getAnswerTemperature() {
-  return parseTemperature(process.env.ANSWER_TEMPERATURE, 0, "ANSWER_TEMPERATURE", 1);
+  const provider = getAnswerProvider();
+  const maxTemperature = provider === "openai" ? 2 : 1;
+  return parseTemperature(process.env.ANSWER_TEMPERATURE, 0, "ANSWER_TEMPERATURE", maxTemperature);
 }
 
 export function getJudgeTemperature() {
@@ -22,12 +24,26 @@ export function getJudgeTemperature() {
   return parseTemperature(process.env.JUDGE_TEMPERATURE, 0, "JUDGE_TEMPERATURE", maxTemperature);
 }
 
+export function getAnswerProvider() {
+  return normalizeProvider(process.env.ANSWER_PROVIDER || "anthropic");
+}
+
 export function getAnswerModel() {
+  const provider = getAnswerProvider();
+
+  if (provider === "openai") {
+    return process.env.OPENAI_ANSWER_MODEL || process.env.OPENAI_MODEL || "gpt-5.1";
+  }
+
+  if (provider === "google") {
+    return process.env.GEMINI_ANSWER_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-pro";
+  }
+
   return process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 }
 
 export function getJudgeProvider() {
-  return (process.env.JUDGE_PROVIDER || "anthropic").toLowerCase();
+  return normalizeProvider(process.env.JUDGE_PROVIDER || "anthropic");
 }
 
 export function getJudgeModel() {
@@ -44,8 +60,16 @@ export function getJudgeModel() {
   return process.env.JUDGE_MODEL || "claude-opus-4-7";
 }
 
+export function getStyleRewriteProvider() {
+  return normalizeProvider(process.env.STYLE_REWRITE_PROVIDER || getAnswerProvider());
+}
+
 export function getStyleRewriteModel() {
-  return process.env.STYLE_REWRITE_MODEL || getAnswerModel();
+  const provider = getStyleRewriteProvider();
+  if (process.env.STYLE_REWRITE_MODEL) return process.env.STYLE_REWRITE_MODEL;
+  if (provider === "openai") return process.env.OPENAI_ANSWER_MODEL || process.env.OPENAI_MODEL || "gpt-5.1";
+  if (provider === "google") return process.env.GEMINI_ANSWER_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-pro";
+  return process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 }
 
 export function getDoubleSwappedPairwise() {
@@ -53,7 +77,7 @@ export function getDoubleSwappedPairwise() {
 }
 
 export function getPrimaryCondition() {
-  return process.env.PRIMARY_CONDITION || "skill";
+  return process.env.PRIMARY_CONDITION || "production_constraint_prompt";
 }
 
 export function getPairwiseComparisons() {
@@ -102,11 +126,12 @@ export function getEvalConditions() {
 }
 
 export function isSameVendorJudge() {
-  return getJudgeProvider() === "anthropic";
+  return getJudgeProvider() === getAnswerProvider();
 }
 
 export function getRunConfig() {
   return {
+    answer_provider: getAnswerProvider(),
     answer_model: getAnswerModel(),
     answer_temperature: getAnswerTemperature(),
     judge_provider: getJudgeProvider(),
@@ -118,12 +143,17 @@ export function getRunConfig() {
     case_dir: process.env.CASE_DIR || "cases",
     primary_condition: getPrimaryCondition(),
     pairwise_comparisons: getPairwiseComparisons(),
+    style_rewrite_provider: getStyleRewriteProvider(),
     style_rewrite_model: getStyleRewriteModel()
   };
 }
 
 export function getAllowedEvalConditions() {
   return [...ALL_EVAL_CONDITIONS];
+}
+
+export function getSupportedProviders() {
+  return ["anthropic", "openai", "google"];
 }
 
 function validatePrimaryAndPairwiseConditions(conditions) {
@@ -186,6 +216,13 @@ function dedupePairs(pairs) {
 function canonicalizeEvalConditions(conditions) {
   const unique = [...new Set(conditions)];
   return ALL_EVAL_CONDITIONS.filter(condition => unique.includes(condition));
+}
+
+function normalizeProvider(provider) {
+  const normalized = String(provider || "anthropic").toLowerCase();
+  if (normalized === "gemini") return "google";
+  if (["anthropic", "openai", "google"].includes(normalized)) return normalized;
+  throw new Error(`Unsupported provider: ${provider}. Allowed: anthropic, openai, google.`);
 }
 
 function parseTemperature(value, fallback, name, max = 1) {
