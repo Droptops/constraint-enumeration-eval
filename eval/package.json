@@ -27,7 +27,8 @@
     "report:frontier": "node scripts/frontier-report.js",
     "eval:frontier-dry-run": "DRY_RUN=true node scripts/run-frontier-matrix.js",
     "check:holdout": "CASE_DIR=cases_holdout npm run check:cases",
-    "check:large-holdout": "CASE_DIR=cases_holdout_large npm run check:cases"
+    "check:large-holdout": "CASE_DIR=cases_holdout_large npm run check:cases",
+    "preflight:evidence-run": "node scripts/preflight-evidence-run.js"
   },
   "dependencies": {
     "next": "16.2.4",
