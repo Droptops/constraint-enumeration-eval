@@ -21,7 +21,13 @@ const evalConditions = process.env.EVAL_CONDITIONS || "baseline,careful_control,
 const pairwiseComparisons = process.env.PAIRWISE_COMPARISONS || "production_constraint_prompt:baseline,production_constraint_prompt:careful_control,production_constraint_prompt:constraint_axis_prompting,production_constraint_prompt:style_matched_baseline,production_constraint_prompt:skill";
 const answerSpecs = parseSpecs(process.env.LAB_ANSWER_SPECS || "anthropic:claude-sonnet-4-6");
 const judgeSpecs = parseSpecs(process.env.LAB_JUDGE_SPECS || "anthropic:claude-opus-4-7,openai:gpt-5.1,google:gemini-2.5-pro");
-const primaryJudge = parseSpec(process.env.LAB_PRIMARY_JUDGE_SPEC || serializeSpec(judgeSpecs[0]));
+const parentJudgeSpec = readParentJudgeSpec();
+const primaryJudge = resolvePrimaryJudge({
+  labPrimaryJudgeSpec: process.env.LAB_PRIMARY_JUDGE_SPEC,
+  parentJudgeSpec,
+  judgeSpecs
+});
+ensureSpecPresent(judgeSpecs, primaryJudge);
 const dryRun = process.env.DRY_RUN === "true";
 const forceRerun = process.env.FORCE_RERUN === "true";
 const runPrefix = validateRunId(process.env.LAB_RUN_PREFIX || makeTimestampRunId("frontier-lab"), "LAB_RUN_PREFIX");
@@ -48,6 +54,20 @@ console.log(`Cases: ${caseDir}; trials=${trials}`);
 console.log(`Primary condition: ${primaryCondition}`);
 console.log(`Answer specs: ${answerSpecs.map(serializeSpec).join(", ")}`);
 console.log(`Judge specs: ${judgeSpecs.map(serializeSpec).join(", ")}`);
+console.log(`Primary judge: ${serializeSpec(primaryJudge)}`);
+if (parentJudgeSpec) {
+  const matchesPrimary = parentJudgeSpec.provider === primaryJudge.provider
+    && parentJudgeSpec.model === primaryJudge.model;
+  if (matchesPrimary) {
+    console.log(`Parent shell JUDGE_PROVIDER/JUDGE_MODEL=${serializeSpec(parentJudgeSpec)} honored as primary judge.`);
+  } else {
+    console.log(
+      `WARNING: parent shell requested judge=${serializeSpec(parentJudgeSpec)} but matrix will use primary=${serializeSpec(primaryJudge)} ` +
+      `(set LAB_PRIMARY_JUDGE_SPEC to override, or unset JUDGE_PROVIDER if unintended). ` +
+      `Each row's child eval will run under the matrix-selected judge, not the parent's.`
+    );
+  }
+}
 console.log("");
 
 for (const answerSpec of answerSpecs) {
@@ -134,11 +154,15 @@ function runCommand(command, args, env, manifestEntry) {
     return;
   }
 
+  // Windows requires shell:true to resolve `npm` to `npm.cmd`. POSIX is fine
+  // with shell:false. The env object is passed via spawn options (not shell
+  // string interpolation), so values are not subject to shell quoting on either
+  // platform.
   const result = spawnSync(command, args, {
     cwd: process.cwd(),
     env,
     stdio: "inherit",
-    shell: false
+    shell: process.platform === "win32"
   });
 
   manifestEntry.exit_status = result.status;
@@ -249,4 +273,31 @@ function shellQuote(value) {
   const stringValue = String(value);
   if (/^[A-Za-z0-9_.,:+=/@-]+$/.test(stringValue)) return stringValue;
   return `'${stringValue.replaceAll("'", "'\\''")}'`;
+}
+
+function readParentJudgeSpec() {
+  const rawProvider = process.env.JUDGE_PROVIDER;
+  if (!rawProvider) return null;
+
+  const normalizedProvider = rawProvider.toLowerCase() === "gemini" ? "google" : rawProvider.toLowerCase();
+  if (!["anthropic", "openai", "google"].includes(normalizedProvider)) return null;
+
+  let model = null;
+  if (normalizedProvider === "anthropic") model = process.env.JUDGE_MODEL || null;
+  else if (normalizedProvider === "openai") model = process.env.OPENAI_JUDGE_MODEL || process.env.JUDGE_MODEL || null;
+  else if (normalizedProvider === "google") model = process.env.GEMINI_JUDGE_MODEL || process.env.JUDGE_MODEL || null;
+
+  if (!model) return null;
+  return { provider: normalizedProvider, model };
+}
+
+function resolvePrimaryJudge({ labPrimaryJudgeSpec, parentJudgeSpec, judgeSpecs }) {
+  if (labPrimaryJudgeSpec) return parseSpec(labPrimaryJudgeSpec);
+  if (parentJudgeSpec) return parentJudgeSpec;
+  return parseSpec(serializeSpec(judgeSpecs[0]));
+}
+
+function ensureSpecPresent(specs, target) {
+  const present = specs.some(spec => spec.provider === target.provider && spec.model === target.model);
+  if (!present) specs.unshift({ ...target });
 }
