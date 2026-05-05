@@ -15,7 +15,11 @@ import {
   getRunConfig,
   isSameVendorJudge
 } from "./config.js";
-import { loadSkillProductionPrompt, loadSkillProductionV63Prompt, loadSkillPrompt } from "./loadSkill.js";
+import {
+  loadSkillPrompt,
+  loadSkillProductionV61Prompt,
+  loadSkillProductionV63Prompt
+} from "./loadSkill.js";
 import {
   BASELINE_SYSTEM,
   CAREFUL_CONTROL_SYSTEM,
@@ -128,7 +132,7 @@ export async function runBatch({
   const pairwisePaths = makePairwisePaths(resultsDir, runId);
 
   const skill = loadSkillPrompt();
-  const skillProduction = loadSkillProductionPrompt();
+  const skillProduction = loadSkillProductionV61Prompt();
   const skillProductionV63 = loadSkillProductionV63Prompt();
   const skillHash = sha256(skill);
   const skillProductionHash = sha256(skillProduction);
