@@ -44,7 +44,7 @@ Rules:
 - Use headings or bullets that resemble a constraint-enumeration format.
 - Keep the final recommendation semantically identical to the baseline answer.`;
 
-function systemForCondition(condition) {
+export function systemForCondition(condition) {
   if (condition === "skill") return loadSkillPrompt();
   if (condition === "skill_concise") {
     return `${loadSkillPrompt()}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`;
