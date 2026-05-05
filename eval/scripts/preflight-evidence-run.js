@@ -45,7 +45,7 @@ function printPlan(plan) {
 
   console.log("");
   console.log(`Case dir:         ${plan.caseDir}${plan.resolvedCaseDir ? ` -> ${plan.resolvedCaseDir}` : ""}`);
-  console.log(`Case count:       ${plan.caseCount} .json file(s)`);
+  console.log(`Case count:       ${plan.caseCount} case entries across ${plan.caseFileCount} .json file(s)`);
   console.log(`Trials per case:  ${plan.trialsPerCase ?? "(invalid)"}`);
   console.log(`Expected rows:    ${plan.expectedRows} (caseCount x conditions x trials)`);
 

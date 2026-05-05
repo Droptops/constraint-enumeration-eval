@@ -20,10 +20,16 @@ const R10_BASE_ENV = {
   ANTHROPIC_API_KEY: "test-key-present"
 };
 
-function makeFixtureCaseDir(fileCount) {
+function makeFixtureCaseDir(totalCaseCount, { filesPerCorpus = totalCaseCount } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "preflight-cases-"));
-  for (let i = 0; i < fileCount; i++) {
-    fs.writeFileSync(path.join(tmp, `case_${i}.json`), "[]\n", "utf8");
+  const perFile = Math.max(1, Math.floor(totalCaseCount / filesPerCorpus));
+  let remaining = totalCaseCount;
+  for (let i = 0; i < filesPerCorpus && remaining > 0; i++) {
+    const isLast = i === filesPerCorpus - 1;
+    const count = isLast ? remaining : Math.min(perFile, remaining);
+    const arr = Array.from({ length: count }, (_, j) => ({ id: `fixture_${i}_${j}` }));
+    fs.writeFileSync(path.join(tmp, `case_${i}.json`), JSON.stringify(arr) + "\n", "utf8");
+    remaining -= count;
   }
   return tmp;
 }
@@ -101,6 +107,20 @@ test("preflight computes expected row count = 300 for 20 cases x 5 conditions x 
     assert.equal(result.plan.trialsPerCase, 3);
     assert.equal(result.plan.conditions.length, 5);
     assert.equal(result.plan.expectedRows, 300);
+  } finally {
+    fs.rmSync(fixtureDir, { recursive: true, force: true });
+  }
+});
+
+test("preflight sums case entries across multiple .json files (4 files x 5 cases = 20)", () => {
+  const fixtureDir = makeFixtureCaseDir(20, { filesPerCorpus: 4 });
+  try {
+    const env = { ...R10_BASE_ENV, CASE_DIR: fixtureDir };
+    const result = runPreflight(env);
+    assert.equal(result.ok, true, `expected ok=true, errors: ${result.errors.join(" | ")}`);
+    assert.equal(result.plan.caseFileCount, 4, "should see 4 .json files");
+    assert.equal(result.plan.caseCount, 20, "should sum to 20 case entries across files");
+    assert.equal(result.plan.expectedRows, 300, "5 conditions x 3 trials x 20 cases");
   } finally {
     fs.rmSync(fixtureDir, { recursive: true, force: true });
   }

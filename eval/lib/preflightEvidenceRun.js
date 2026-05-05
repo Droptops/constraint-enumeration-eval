@@ -171,6 +171,7 @@ export function runPreflight(env) {
 
   const caseDir = isPresent(env.CASE_DIR) ? env.CASE_DIR : "cases";
   let caseCount = "unknown";
+  let caseFileCount = 0;
   let resolvedCaseDir = null;
   const located = locateCaseDir(caseDir);
   if (!located) {
@@ -178,7 +179,24 @@ export function runPreflight(env) {
   } else {
     try {
       const files = fs.readdirSync(located).filter(name => name.endsWith(".json"));
-      caseCount = files.length;
+      caseFileCount = files.length;
+      let total = 0;
+      for (const file of files) {
+        const fullPath = path.join(located, file);
+        try {
+          const parsed = JSON.parse(fs.readFileSync(fullPath, "utf8"));
+          if (Array.isArray(parsed)) {
+            total += parsed.length;
+          } else if (parsed && Array.isArray(parsed.cases)) {
+            total += parsed.cases.length;
+          } else {
+            warnings.push(`CASE_DIR file "${file}" has unrecognized structure (not an array or { cases: [...] }); counting 0 cases.`);
+          }
+        } catch (err) {
+          warnings.push(`Could not parse CASE_DIR file "${file}": ${err.message}`);
+        }
+      }
+      caseCount = total;
       resolvedCaseDir = located;
     } catch (err) {
       warnings.push(`Could not read CASE_DIR "${located}": ${err.message}`);
@@ -208,6 +226,7 @@ export function runPreflight(env) {
     judgeProviders: [...seenProviders],
     expectedRows,
     caseCount,
+    caseFileCount,
     trialsPerCase: Number.isFinite(trialsPerCase) ? trialsPerCase : null,
     keyPresence,
     gitHead: gitHeadResult.ok ? gitHeadResult.output.trim() : null,
