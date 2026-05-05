@@ -9,6 +9,7 @@ const ALL_EVAL_CONDITIONS = [
   "style_matched_baseline",
   "production_constraint_prompt",
   "production_blocker_first_v6.3_candidate",
+  "production_blocker_first_v6.4_candidate",
   "skill",
   "skill_concise"
 ];
