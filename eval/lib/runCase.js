@@ -15,6 +15,7 @@ import {
   loadSkillProductionV65Prompt,
   loadSkillProductionV65TracePrompt,
   loadSkillProductionV66Prompt,
+  loadSkillProductionV67Prompt,
   loadSkillMarkReasonLongformControlPrompt
 } from "./loadSkill.js";
 
@@ -75,6 +76,9 @@ export function systemForCondition(condition) {
   }
   if (condition === "production_blocker_first_v6.6_candidate") {
     return loadSkillProductionV66Prompt();
+  }
+  if (condition === "production_blocker_first_v6.7_candidate") {
+    return loadSkillProductionV67Prompt();
   }
   if (condition === "mark_reason_longform_control") {
     return loadSkillMarkReasonLongformControlPrompt();
