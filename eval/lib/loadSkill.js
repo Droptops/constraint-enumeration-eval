@@ -42,3 +42,9 @@ export function loadSkillProductionV65Prompt() {
     "SKILL_PRODUCTION_V65.md"
   ]);
 }
+
+export function loadSkillProductionV65TracePrompt() {
+  return readPromptFromCandidates("v6.5 blocker-first trace (diagnostic) prompt", [
+    "SKILL_PRODUCTION_V65_TRACE.md"
+  ]);
+}

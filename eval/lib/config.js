@@ -11,6 +11,7 @@ const ALL_EVAL_CONDITIONS = [
   "production_blocker_first_v6.3_candidate",
   "production_blocker_first_v6.4_candidate",
   "production_blocker_first_v6.5_candidate",
+  "production_blocker_first_v6.5_trace",
   "skill",
   "skill_concise"
 ];

@@ -6,7 +6,8 @@ import { systemForCondition } from "../lib/runCase.js";
 import {
   loadSkillProductionV63Prompt,
   loadSkillProductionV64Prompt,
-  loadSkillProductionV65Prompt
+  loadSkillProductionV65Prompt,
+  loadSkillProductionV65TracePrompt
 } from "../lib/loadSkill.js";
 
 const R6_CONDITIONS = [
@@ -16,7 +17,8 @@ const R6_CONDITIONS = [
   "production_constraint_prompt_v6.1",
   "production_blocker_first_v6.3_candidate",
   "production_blocker_first_v6.4_candidate",
-  "production_blocker_first_v6.5_candidate"
+  "production_blocker_first_v6.5_candidate",
+  "production_blocker_first_v6.5_trace"
 ];
 
 function findPromptFile(fileName) {
@@ -57,4 +59,16 @@ test("production_blocker_first_v6.5_candidate resolves SKILL_PRODUCTION_V65.md",
   const expected = fs.readFileSync(expectedPath, "utf8");
   assert.equal(loadSkillProductionV65Prompt(), expected);
   assert.equal(systemForCondition("production_blocker_first_v6.5_candidate"), expected);
+});
+
+test("production_blocker_first_v6.5_trace resolves SKILL_PRODUCTION_V65_TRACE.md", () => {
+  const expectedPath = findPromptFile("SKILL_PRODUCTION_V65_TRACE.md");
+  assert.ok(expectedPath, "SKILL_PRODUCTION_V65_TRACE.md must exist in eval/ or repo root");
+  const expected = fs.readFileSync(expectedPath, "utf8");
+  assert.equal(loadSkillProductionV65TracePrompt(), expected);
+  assert.equal(systemForCondition("production_blocker_first_v6.5_trace"), expected);
+});
+
+test("v6.5 trace prompt is distinct from v6.5 candidate prompt", () => {
+  assert.notEqual(loadSkillProductionV65TracePrompt(), loadSkillProductionV65Prompt());
 });
