@@ -10,3 +10,16 @@ coverage/
 eval/results/*.json
 eval/results/*.jsonl
 eval/SKILL.md
+
+# Claude Code local agent state
+.claude/
+
+# Frozen/failed eval result snapshots (not for publication)
+eval/results_frozen_*/
+eval/results_failed_*/
+
+# Log files anywhere in the tree
+*.log
+
+# Defense-in-depth: any local agent settings file, anywhere
+**/settings.local.json
