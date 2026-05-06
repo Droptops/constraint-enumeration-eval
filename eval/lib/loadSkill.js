@@ -36,3 +36,9 @@ export function loadSkillProductionV64Prompt() {
     "SKILL_PRODUCTION_V64.md"
   ]);
 }
+
+export function loadSkillProductionV65Prompt() {
+  return readPromptFromCandidates("v6.5 blocker-first production prompt", [
+    "SKILL_PRODUCTION_V65.md"
+  ]);
+}

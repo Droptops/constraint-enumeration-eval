@@ -33,3 +33,20 @@ test("all loadSkill.js imports across eval/lib/*.js are actually exported", asyn
 
   assert.ok(importerCount > 0, "expected at least one eval/lib/*.js file to import from ./loadSkill.js");
 });
+
+test("loadSkill.js exports each versioned production prompt loader", async () => {
+  const loadSkillExports = Object.keys(await import("../lib/loadSkill.js"));
+  const requiredExports = [
+    "loadSkillPrompt",
+    "loadSkillProductionV61Prompt",
+    "loadSkillProductionV63Prompt",
+    "loadSkillProductionV64Prompt",
+    "loadSkillProductionV65Prompt"
+  ];
+  for (const symbol of requiredExports) {
+    assert.ok(
+      loadSkillExports.includes(symbol),
+      `loadSkill.js must export ${symbol}. Exports: ${loadSkillExports.join(", ")}`
+    );
+  }
+});

@@ -10,6 +10,7 @@ const ALL_EVAL_CONDITIONS = [
   "production_constraint_prompt",
   "production_blocker_first_v6.3_candidate",
   "production_blocker_first_v6.4_candidate",
+  "production_blocker_first_v6.5_candidate",
   "skill",
   "skill_concise"
 ];

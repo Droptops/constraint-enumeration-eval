@@ -11,7 +11,8 @@ import {
   loadSkillPrompt,
   loadSkillProductionV61Prompt,
   loadSkillProductionV63Prompt,
-  loadSkillProductionV64Prompt
+  loadSkillProductionV64Prompt,
+  loadSkillProductionV65Prompt
 } from "./loadSkill.js";
 
 export const BASELINE_SYSTEM = "You are a helpful assistant.";
@@ -62,6 +63,9 @@ export function systemForCondition(condition) {
   }
   if (condition === "production_blocker_first_v6.4_candidate") {
     return loadSkillProductionV64Prompt();
+  }
+  if (condition === "production_blocker_first_v6.5_candidate") {
+    return loadSkillProductionV65Prompt();
   }
   if (condition === "skill_concise") {
     return `${loadSkillPrompt()}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`;
