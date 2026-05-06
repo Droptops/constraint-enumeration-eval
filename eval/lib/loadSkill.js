@@ -54,3 +54,9 @@ export function loadSkillMarkReasonLongformControlPrompt() {
     "SKILL_MARK_REASON_LONGFORM_CONTROL.md"
   ]);
 }
+
+export function loadSkillProductionV66Prompt() {
+  return readPromptFromCandidates("v6.6 blocker-first production prompt", [
+    "SKILL_PRODUCTION_V66.md"
+  ]);
+}
