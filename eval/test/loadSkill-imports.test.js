@@ -42,7 +42,8 @@ test("loadSkill.js exports each versioned production prompt loader", async () =>
     "loadSkillProductionV63Prompt",
     "loadSkillProductionV64Prompt",
     "loadSkillProductionV65Prompt",
-    "loadSkillProductionV65TracePrompt"
+    "loadSkillProductionV65TracePrompt",
+    "loadSkillMarkReasonLongformControlPrompt"
   ];
   for (const symbol of requiredExports) {
     assert.ok(

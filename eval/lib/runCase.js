@@ -13,7 +13,8 @@ import {
   loadSkillProductionV63Prompt,
   loadSkillProductionV64Prompt,
   loadSkillProductionV65Prompt,
-  loadSkillProductionV65TracePrompt
+  loadSkillProductionV65TracePrompt,
+  loadSkillMarkReasonLongformControlPrompt
 } from "./loadSkill.js";
 
 export const BASELINE_SYSTEM = "You are a helpful assistant.";
@@ -70,6 +71,9 @@ export function systemForCondition(condition) {
   }
   if (condition === "production_blocker_first_v6.5_trace") {
     return loadSkillProductionV65TracePrompt();
+  }
+  if (condition === "mark_reason_longform_control") {
+    return loadSkillMarkReasonLongformControlPrompt();
   }
   if (condition === "skill_concise") {
     return `${loadSkillPrompt()}\n\nApply the protocol, but keep the final user-facing response concise and avoid unnecessary prose.`;

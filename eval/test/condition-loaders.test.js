@@ -7,7 +7,8 @@ import {
   loadSkillProductionV63Prompt,
   loadSkillProductionV64Prompt,
   loadSkillProductionV65Prompt,
-  loadSkillProductionV65TracePrompt
+  loadSkillProductionV65TracePrompt,
+  loadSkillMarkReasonLongformControlPrompt
 } from "../lib/loadSkill.js";
 
 const R6_CONDITIONS = [
@@ -18,7 +19,8 @@ const R6_CONDITIONS = [
   "production_blocker_first_v6.3_candidate",
   "production_blocker_first_v6.4_candidate",
   "production_blocker_first_v6.5_candidate",
-  "production_blocker_first_v6.5_trace"
+  "production_blocker_first_v6.5_trace",
+  "mark_reason_longform_control"
 ];
 
 function findPromptFile(fileName) {
@@ -71,4 +73,12 @@ test("production_blocker_first_v6.5_trace resolves SKILL_PRODUCTION_V65_TRACE.md
 
 test("v6.5 trace prompt is distinct from v6.5 candidate prompt", () => {
   assert.notEqual(loadSkillProductionV65TracePrompt(), loadSkillProductionV65Prompt());
+});
+
+test("mark_reason_longform_control resolves SKILL_MARK_REASON_LONGFORM_CONTROL.md", () => {
+  const expectedPath = findPromptFile("SKILL_MARK_REASON_LONGFORM_CONTROL.md");
+  assert.ok(expectedPath, "SKILL_MARK_REASON_LONGFORM_CONTROL.md must exist in eval/ or repo root");
+  const expected = fs.readFileSync(expectedPath, "utf8");
+  assert.equal(loadSkillMarkReasonLongformControlPrompt(), expected);
+  assert.equal(systemForCondition("mark_reason_longform_control"), expected);
 });

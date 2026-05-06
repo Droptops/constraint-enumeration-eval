@@ -48,3 +48,9 @@ export function loadSkillProductionV65TracePrompt() {
     "SKILL_PRODUCTION_V65_TRACE.md"
   ]);
 }
+
+export function loadSkillMarkReasonLongformControlPrompt() {
+  return readPromptFromCandidates("Mark/maximal-reasoning longform diagnostic control prompt", [
+    "SKILL_MARK_REASON_LONGFORM_CONTROL.md"
+  ]);
+}
