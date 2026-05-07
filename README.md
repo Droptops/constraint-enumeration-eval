@@ -1,53 +1,91 @@
-# Constraint Enumeration Eval
+# ConstraintGate
 
-Constraint Enumeration is a decision-quality eval for real-world prompts where a model can answer too quickly, optimize for the most salient local feature, and miss the full conjunction of constraints required for a useful recommendation.
+> Most agent failures are not reasoning failures. They are meaning, authority, and work-primitive routing failures. ConstraintGate measures whether a model performed the work it was authorized to do — not whether the answer sounded thoughtful.
 
-This repo evaluates whether a constraint-first system prompt reduces those failures relative to plain, careful, constraint-axis, style-matched, and no-enumeration controls.
+ConstraintGate is an eval framework for agent authority routing. It tests whether a model understood the user's work unit, selected the correct authority posture, emitted the right work primitive, and avoided unauthorized work. The initial evidence wedge is missing-information / clarification-expected blocker behavior: knowing when to ask, stop, state a blocker, or recommend the nearest safe alternative instead of producing a polished but unauthorized answer.
 
-## Current release: v6.1
+## What ConstraintGate measures
 
-v6.1 is the frontier-lab threshold release. It keeps the v5.1 production-prompt harness and adds the pieces needed to test whether the effect is large enough to matter to a frontier lab or production AI team.
+ConstraintGate separates answer quality from work authorization.
 
-New in v6.1:
+A model can sound helpful and still fail by doing the wrong kind of work:
 
-Critical v6.1 fixes:
+- recommending when it should ask;
+- executing when it should defer;
+- explaining when it should state a blocker;
+- branching when it should stop;
+- producing a confident answer when essential information is missing.
 
-- Same-vendor judge warnings now compare the configured answer provider and judge provider across Anthropic, OpenAI, and Google/Gemini.
-- Frontier reports now require `LAB_MANIFEST`; they no longer scan every historical summary in `results/`.
-- Default `PRIMARY_CONDITION` is now `production_constraint_prompt`, matching the frontier matrix runner.
-- The matrix runner skips compatible completed summaries on restart and writes a partial manifest after each completed run. Use `FORCE_RERUN=true` to override.
+The core evaluation question is not only: "Was the answer reasonable?"
 
+It is:
 
-- Added `ANSWER_PROVIDER` support for Anthropic, OpenAI, and Gemini/Google answer models, not just Anthropic answer generation.
-- Added `eval/lib/answerModel.js` with shared answer-model dispatch, retries, OpenAI reasoning/refusal handling, and Gemini extraction.
-- Added `npm run eval:frontier-matrix` to run multiple answer-model specs and automatically rejudge each run across multiple judge families.
-- Added `npm run eval:frontier-dry-run` to print the exact matrix commands before spending API budget.
-- Added `npm run report:frontier` to summarize whether the primary prompt beats the strongest serious control, not just baseline.
-- Added `FRONTIER_LAB_PROTOCOL.md` with the 100-300 case benchmark plan, cross-vendor judging, cheaper-model comparison, and human-review workflow.
-- Added `cases_holdout_large/README.md` as the landing zone for independently authored 100+ case corpora.
-- Updated model-access checks to validate answer, judge, and optional style-rewrite models across Anthropic/OpenAI/Gemini.
+> Did the model perform the work it was authorized to do?
 
-Included from v5.1:
+## Current state
 
-- `paired_analysis` / `paired_delta_summary` follow `PRIMARY_CONDITION` versus `baseline` instead of hardcoding `skill - baseline`.
-- Gate sensitivity includes `primary_minus_*` rows, so `production_constraint_prompt` runs show alternate-gate robustness directly.
-- Cross-vendor rejudge documentation includes `CASE_DIR`, `PRIMARY_CONDITION`, and matching `PAIRWISE_COMPARISONS` to avoid cases-hash mismatches.
-- `npm run report` prints length-quartile pass-rate breakdowns and primary-condition gate sensitivity.
-- OpenAI text extraction uses extracted output blocks only and skips reasoning/refusal blocks explicitly.
+- **Current public state:** r14b complete
+- **Global / default champion:** `production_blocker_first_v6.3_candidate`
+- **Targeted champion** (missing-information / clarification-expected blocker class): `production_blocker_first_v6.7_candidate`
+- **v6.7 is NOT globally promoted.**
+- **r15 is planned, not launched.**
 
-Included from v5.0:
+## Reading order
 
-- Added `production_constraint_prompt` and `SKILL_PRODUCTION.md`.
-- Added arbitrary pairwise comparisons through `PAIRWISE_COMPARISONS`.
-- Added `PRIMARY_CONDITION` so the harness can test a production prompt as the headline condition.
-- Added `npm run eval:breakthrough`, `npm run make:large-holdout-prompt`, `npm run export:human-review`, and `npm run report`.
-- Added `BREAKTHROUGH_PROTOCOL.md` for 100+ case runs, cross-vendor rejudges, and human blind review.
+- [r14b Targeted Promotion Memo](eval/project_r14b_v67_targeted_promotion_memo.md) — full decision, gate tables, and noise-floor interpretation.
+- [r15 Work Unit / Authority / Primitive Schema Research Plan](eval/project_r15_primitive_schema_draft.md) — pre-registration draft for the next round.
 
-Included from v4.0:
+## r14b headline results
 
-- Added `constraint_axis_prompting` and `style_matched_baseline` controls.
-- Default pass gate no longer depends on `considers_binding_constraints_implicitly`; that field is diagnostic only.
-- Added gate-sensitivity tables, case-level bootstrap CIs, length-quartile pass-rate breakdowns, p50/p90 answer-length stats, answer truncation tracking, Gemini judge support, `not_acceptable_final_answers`, delimiter-injection hardening, OpenAI refusal/reasoning handling, null-prototype grouping, Node 20+, package lock, unit tests, GitHub Actions CI, and `CASE_DIR` support.
+GPT-5.1 primary judge, n = 60 per condition, missing-information / clarification-expected blocker holdout class.
+
+| Condition | HCV% | TypeA% | OverEnum% | Invalid% |
+|---|---:|---:|---:|---:|
+| v6.3 (global champion) | 28.3% | 26.7% | 40.0% | 0.0% |
+| v6.7 (targeted champion) | 23.3% | 25.0% | 28.3% | 0.0% |
+| Δ (rows / pp) | −3 / −5.0pp | −1 / −1.7pp | −7 / −11.7pp | 0 |
+
+All four pre-registered gate metrics passed under the GPT-5.1 primary judge. Opus 4.7 corroborated the direction across HCV, TypeA, and OverEnum on the same outputs.
+
+## Interpretation guardrails
+
+- **r14b is a targeted promotion, not global superiority evidence.** v6.7 was designed for and evaluated on the missing-information / clarification-expected blocker class only.
+- **TypeA delta is −1 row / −1.7pp.** This is non-regression only. It is *not* a meaningful improvement under the primary judge. The TypeA gate passed because TypeA is a non-regression floor, not because v6.7 materially improved TypeA.
+- **Opus 4.7 corroborates direction but is robustness support, not the primary decision basis.** The promotion gate is anchored to the GPT-5.1 primary judge; Opus shifts confidence, it does not own the call.
+- **v6.3 remains the global / default champion.** Default routing continues to use v6.3 outside the targeted class.
+- **Global promotion of v6.7 requires separate evidence:** non-regression across non-targeted hard-constraint classes — jurisdictional, expertise-required, scope-violation, blocker-present, and physical-safety-inference. That evaluation is r15 Track 4.
+
+## r15 research direction
+
+The most consequential finding in r14b is methodological, not engineering: **OverEnum is undertyped.** v6.7 scored 28.3% OverEnum under GPT-5.1 and 0.0% under Opus 4.7 on identical outputs. The gap *widens* on prompt-engineered conditions (v6.6, v6.7), it does not narrow.
+
+The pattern suggests two distinct constructs are being judged under one label:
+
+- **Behavioral OverEnum (B-OverEnum)** — extra constraint listing, scaffolding, branches, verbose enumeration. GPT-5.1 appears more sensitive to this.
+- **Authority OverEnum (A-OverEnum)** — output outside the licensed work primitive or beyond the agent's authority boundary. Opus 4.7 appears closer to this.
+
+r15 introduces a per-case **Work Unit / Authority / Primitive schema** to separate the two:
+
+| Field | Purpose |
+|---|---|
+| `surface_request` | The literal user request as stated |
+| `work_unit` | What the user is actually trying to accomplish |
+| `meaning_hierarchy` | The inferred goal behind the work unit, if distinct |
+| `authority_posture` | `ADVISE` / `EXECUTE` / `DEFER` / `STOP` |
+| `intent_class` | recommendation-seeking, clarification-seeking, execution-requesting, etc. |
+| `required_primary_primitive` | The one licensed action type the model must produce |
+| `licensed_secondary_primitives` | Additional action types that are acceptable |
+| `forbidden_primitives` | Action types the model must not produce |
+| `policy_constraints` | Hard constraints from policy, regulation, or domain rules |
+| `overenum_traps` | Constraint-listing patterns known to trigger false OverEnum on this case |
+
+Status of new metrics in r15:
+
+- **PrimitiveMatch** is exploratory only — not a gate metric. It needs per-case annotation and inter-annotator reliability validation before it can be evidentiary.
+- **Legacy OverEnum** remains the r15 promotion-gate metric (continuity with r14b).
+- **A-OverEnum and B-OverEnum** are diagnostic readouts in r15. They may replace or supplement legacy OverEnum in r16 only if inter-judge reliability and correlation analysis support the split.
+
+Full plan, including the v6.6-vs-v6.7 head-to-head and the global non-regression run: [r15 Research Plan](eval/project_r15_primitive_schema_draft.md).
 
 ## Core claim being tested
 
@@ -123,7 +161,7 @@ Generate the lab threshold report from the manifest printed by the matrix runner
 LAB_MANIFEST=results/<frontier-lab-run>.manifest.json npm run report:frontier
 ```
 
-For a cheaper-model comparison, add a second answer model to `LAB_ANSWER_SPECS`, for example:
+For a cheaper-model comparison, add a second answer model to `LAB_ANSWER_SPECS`:
 
 ```bash
 LAB_ANSWER_SPECS=anthropic:claude-sonnet-4-6,openai:gpt-5.1,google:gemini-2.5-pro \
@@ -189,6 +227,8 @@ PAIRWISE_COMPARISONS=production_constraint_prompt:baseline,production_constraint
 CASE_DIR=cases_holdout_large
 TRIALS=3
 ```
+
+Never paste real API key values into a tracked file. `.env` and `.env.local` are gitignored; `.env.example` and `.env.local.example` are templates with empty placeholders only.
 
 Temperature handling is provider/model-aware. Some OpenAI reasoning models reject sampling parameters, so the request builder omits temperature when required.
 
@@ -321,6 +361,8 @@ const pass =
 
 Alternate gates are reported under `absolute_summary.*.gate_sensitivity`, including the older v3 strict gate that also required `considers_binding_constraints_implicitly`.
 
+In r15, `over_enumerates_irrelevant_constraints` will be supplemented by `behavioral_over_enum` and `authority_over_enum` as diagnostic readouts; the legacy field remains the gate metric.
+
 ## Metrics
 
 Primary metrics:
@@ -330,6 +372,9 @@ constraint_failure_rate
 pass_rate
 paired skill-minus-control delta with bootstrap CI
 pairwise skill/baseline win/loss/tie rates
+HCV (hard-constraint violation rate)
+TypeA (unnecessary clarification rate)
+OverEnum (harmful over-enumeration rate)
 ```
 
 Diagnostics:
@@ -344,7 +389,7 @@ same-vendor warning
 margin-weighted pairwise score, explicitly diagnostic only
 ```
 
-Pass rate is intentionally strict. `constraint_failure_rate` is the cleaner headline failure metric; pass rate is a supporting diagnostic.
+Pass rate is intentionally strict. `constraint_failure_rate` is the cleaner headline failure metric; pass rate is a supporting diagnostic. r14b promotion decisions are anchored on HCV, TypeA, OverEnum, and Invalid% rather than aggregate pass rate.
 
 ## Reproducibility and provenance
 
@@ -417,6 +462,7 @@ Any of the following should be treated as a serious negative result:
 - The lift disappears under OpenAI or Gemini rejudging.
 - The lift exists only in the longest answer-length quartile.
 - Held-out cases show materially smaller or reversed lift relative to the in-sample corpus.
+- v6.7 regresses HCV, TypeA, or OverEnum vs v6.3 on non-targeted hard-constraint classes (r15 Track 4).
 
 ## Publication checklist
 
@@ -433,22 +479,9 @@ Before making a public claim:
 8. Report gate sensitivity and length-quartile metrics.
 9. Human-audit judge disagreements, baseline wins, style-matched wins, and truncations.
 10. Treat same-vendor-only results as directional.
+11. State scope explicitly: targeted vs global, primary judge vs robustness, evidentiary vs non-regression.
 ```
 
 ## License
 
 MIT
-
-## v6: Frontier-lab matrix
-
-v6 adds cross-provider answer generation and an orchestration layer for lab-relevant runs. Use `FRONTIER_LAB_PROTOCOL.md` when you want to test the threshold that would make a frontier lab care: 100-300 independently authored cases, multiple answer models, multiple judge families, strongest-control reporting, and optional human blind review.
-
-Common commands:
-
-```bash
-cd eval
-NUM_CASES=100 npm run make:large-holdout-prompt
-DRY_RUN=true CASE_DIR=cases_holdout_large npm run eval:frontier-matrix
-CASE_DIR=cases_holdout_large npm run eval:frontier-matrix
-LAB_MANIFEST=results/<manifest>.json npm run report:frontier
-```
