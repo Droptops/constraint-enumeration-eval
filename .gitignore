@@ -10,6 +10,7 @@ coverage/
 eval/results/*.json
 eval/results/*.jsonl
 eval/SKILL.md
+eval/SKILL_PRODUCTION.md
 
 # Claude Code local agent state
 .claude/

@@ -55,6 +55,25 @@ All four pre-registered gate metrics passed under the GPT-5.1 primary judge. Opu
 - **v6.3 remains the global / default champion.** Default routing continues to use v6.3 outside the targeted class.
 - **Global promotion of v6.7 requires separate evidence:** non-regression across non-targeted hard-constraint classes — jurisdictional, expertise-required, scope-violation, blocker-present, and physical-safety-inference. That evaluation is r15 Track 4.
 
+## Agent Authority Router
+
+The Agent Authority Router is the first productized layer of ConstraintGate. It encodes the Work Unit / Authority / Primitive schema in code so cases can be annotated, scored, and read out independently of any single judge.
+
+The schema lives in `eval/lib/primitiveSchema.js` and consists of:
+
+- **Work Unit** — what the user is actually trying to accomplish, distinct from the surface request.
+- **Authority posture** — `ADVISE`, `EXECUTE`, `DEFER`, or `STOP`.
+- **Primitive set** — the canonical work primitives (`GIVE_FACT`, `GIVE_RECOMMENDATION`, `ASK_CLARIFYING_QUESTION`, `STATE_BLOCKER`, `RECOMMEND_NEAREST_SAFE_ALTERNATIVE`, `COMPARE_OPTIONS`, `MAKE_PLAN`, `EXECUTE_ACTION`, `REFUSE_AND_REDIRECT`, `SUMMARIZE`).
+- **Per-case annotation** — `required_primary_primitive`, `licensed_secondary_primitives`, `forbidden_primitives`, plus policy and overenum-trap context.
+
+`validatePrimitiveCaseAnnotation` (in `eval/lib/primitiveSchema.js`) checks these annotations. `scorePrimitiveMatch` (in `eval/lib/primitiveMatch.js`) computes the PrimitiveMatch readout. An example annotation lives at `eval/fixtures/primitive_cases/missing_info_blocker_example.json`.
+
+**Status of the new metrics:**
+
+- **PrimitiveMatch is exploratory only.** It is not a promotion gate. It needs per-case annotation and inter-annotator reliability validation before it can be evidentiary.
+- **Legacy OverEnum remains the r15 promotion-gate metric.** A-OverEnum and B-OverEnum (in `eval/lib/overenumTypes.js`) are diagnostic readouts only.
+- **r15 is not launched.** This branch only ships the schema, scoring, and a fixture. No new evals were run.
+
 ## r15 research direction
 
 The most consequential finding in r14b is methodological, not engineering: **OverEnum is undertyped.** v6.7 scored 28.3% OverEnum under GPT-5.1 and 0.0% under Opus 4.7 on identical outputs. The gap *widens* on prompt-engineered conditions (v6.6, v6.7), it does not narrow.
