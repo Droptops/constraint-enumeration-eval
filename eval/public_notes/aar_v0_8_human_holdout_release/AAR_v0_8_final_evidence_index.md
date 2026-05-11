@@ -2,7 +2,7 @@
 
 **Package status**: CLOSED — behavioral holdout pass under human adjudication (exclusion scenario)
 **Date closed**: 2026-05-11
-**Evidence directory**: `C:\Users\m4vil\aar_v08_blind_holdout_results_claude_sonnet_4_6_windows_native\`
+**Evidence directory**: `<local_windows_evidence_folder>\`
 
 ---
 
@@ -22,14 +22,14 @@
 All evidence artifacts are stored at:
 
 ```
-C:\Users\m4vil\aar_v08_blind_holdout_results_claude_sonnet_4_6_windows_native\
+<local_windows_evidence_folder>\
 ```
 
 Frozen source artifacts (read-only, never modified):
 
 ```
-C:\Users\m4vil\aar_v08_frozen\agent-authority-router-skill_v0_8.zip
-C:\Users\m4vil\aar_v08_blind_holdout_cases\holdout_cases_v1.jsonl
+<local_windows_evidence_folder>\aar_v08_frozen\agent-authority-router-skill_v0_8.zip
+<local_windows_evidence_folder>\aar_v08_blind_holdout_cases\holdout_cases_v1.jsonl
 ```
 
 ---

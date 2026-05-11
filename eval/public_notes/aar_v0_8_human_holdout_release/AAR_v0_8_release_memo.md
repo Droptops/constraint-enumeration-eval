@@ -139,7 +139,7 @@ The following claims are explicitly not supported by this evidence package:
 
 ## 10. Recommended Next Steps
 
-1. **Preserve the evidence package.** All artifacts are at `C:\Users\m4vil\aar_v08_blind_holdout_results_claude_sonnet_4_6_windows_native\`. The final evidence index (SHA: `EE020939A9B94A445ABB28A7FFF096806743AA7B102247298C5B0E03F77AA7E4`) is the canonical entry point.
+1. **Preserve the evidence package.** All artifacts are at `<local_windows_evidence_folder>\`. The final evidence index (SHA: `EE020939A9B94A445ABB28A7FFF096806743AA7B102247298C5B0E03F77AA7E4`) is the canonical entry point.
 
 2. **Repair automated scorer parity.** Before making any automated benchmark claims, establish and document scorer parity against the human-adjudication ground truth from this holdout.
 

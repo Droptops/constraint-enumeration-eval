@@ -8,7 +8,7 @@ No model rerun, no modification to the frozen v0.8 skill, and no v0.9 developmen
 
 ## 2. Evidence Package Provenance
 
-All artifacts below are stored under `C:\Users\m4vil\aar_v08_blind_holdout_results_claude_sonnet_4_6_windows_native\` unless otherwise noted. SHA-256 hashes are provided where known.
+All artifacts below are stored under `<local_windows_evidence_folder>\` unless otherwise noted. SHA-256 hashes are provided where known.
 
 | Artifact | SHA-256 |
 |---|---|
