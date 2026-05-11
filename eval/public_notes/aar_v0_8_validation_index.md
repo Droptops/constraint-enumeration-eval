@@ -39,7 +39,7 @@ A deterministic automated scorer (`eval/lib/scorerParity.js`) was subsequently b
 - All four pre-registered gates cleared: B-OverEnum=0, hallucinated_tool_io=0, PrimitiveMatch≥85% (human-adjudicated), checklist_exposed≤1.
 - The repaired deterministic scorer (`eval/lib/scorerParity.js`, commit `36e0291`) reaches 195/195 (100%) field-level parity against second-independent human adjudication across 39 scored cases.
 - h019 is consistently treated as INVALID_CASE across all evidence artifacts.
-- The scorer is a validated instrument ready for use in future automated scoring workflows, subject to normal benchmark hygiene.
+- The scorer is validated against the second-independent human-adjudication labels for this frozen 39-case set, and is ready for use in future automated scoring workflows subject to normal benchmark hygiene. ("Validated" here means scorer-vs-human-label parity on this specific frozen set, not validation of future model behavior or generalization beyond this set.)
 
 ### Disallowed
 The following claims are **not supported** by this evidence trail and must not be made:
