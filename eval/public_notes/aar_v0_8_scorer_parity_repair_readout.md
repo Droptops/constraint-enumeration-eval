@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-11
 **Branch**: feature/aar-v08-scorer-parity-repair
-**Status**: COMPLETE (scoper parity tests green; no benchmark rerun performed)
+**Status**: COMPLETE (scorer parity tests green; no benchmark rerun performed)
 
 ## Files Changed
 
