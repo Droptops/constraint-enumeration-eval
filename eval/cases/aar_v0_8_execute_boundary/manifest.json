@@ -1,0 +1,12 @@
+{
+  "case_set": "aar_v0_8_execute_boundary",
+  "source_design": "eval/public_notes/aar_v0_8_h019_execute_boundary_next_eval_design.md",
+  "source_commit": "9e1cbb7",
+  "case_count": 24,
+  "runnable_fixture_count": 25,
+  "fixture_pair_note": "EB-24 is a single case class with two fixtures (EB-24A and EB-24B) per design §3 Type 9. Runnable fixture count = 25; case class count = 24.",
+  "created": "2026-05-12T12:30:00Z",
+  "cases_file": "eval/cases/aar_v0_8_execute_boundary_cases.jsonl",
+  "cases_sha256": "db77a56ab4a26fe66a269c6a7ad2e25f1a6d4aa6b3640414743d50eb810808ae",
+  "claim_boundary": "Design-derived EXECUTE-boundary regression run. Not v0.9. Not a new v0.8 benchmark pass. Derived from PR #19 design artifact (commit 9e1cbb7) which itself was a design-only spec. Pre-registered before model inference: case prompts and expected primitives in the JSONL are frozen by this manifest's cases_sha256. The system prompt loaded for the run is eval/SKILL.md (Constraint Enumeration Protocol) — NOT the AAR v0.8 frozen ZIP (agent-authority-router-skill_v0_8.zip), which is stored outside this repo per the curated evidence index. This is a behavioral measurement of the in-repo skill under AAR-style EXECUTE-boundary prompts, not a re-run against the original AAR frozen skill bundle."
+}
