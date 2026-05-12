@@ -9,12 +9,40 @@
 // Does not modify any v0.8 artifact, only reads SKILL.md and the case JSONL.
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { callClaude } from "../lib/anthropic.js";
 import { loadSkillPrompt } from "../lib/loadSkill.js";
+
+function loadSkillFromZip(zipPath) {
+  if (!fs.existsSync(zipPath)) {
+    throw new Error(`SKILL_ZIP_PATH not found: ${zipPath}`);
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aar-skill-zip-"));
+  try {
+    execFileSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        `Expand-Archive -LiteralPath "${zipPath}" -DestinationPath "${tmpDir}" -Force`
+      ],
+      { stdio: "pipe" }
+    );
+    const skillPath = path.join(tmpDir, "SKILL.md");
+    if (!fs.existsSync(skillPath)) {
+      throw new Error(`SKILL.md not found inside ZIP: ${zipPath}`);
+    }
+    return fs.readFileSync(skillPath, "utf8");
+  } finally {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,15 +82,24 @@ async function main() {
 
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
   const temperature = 0;
-  const cwd = process.cwd();
-  process.chdir(EVAL_ROOT);
-  const systemPrompt = loadSkillPrompt();
-  process.chdir(cwd);
+  const zipPath = process.env.SKILL_ZIP_PATH;
+  let systemPrompt;
+  let systemPromptSource;
+  if (zipPath) {
+    systemPrompt = loadSkillFromZip(zipPath);
+    systemPromptSource = `zip:${zipPath}`;
+  } else {
+    const cwd = process.cwd();
+    process.chdir(EVAL_ROOT);
+    systemPrompt = loadSkillPrompt();
+    process.chdir(cwd);
+    systemPromptSource = "eval/SKILL.md";
+  }
 
   const cases = readCases();
   console.log(`[run-execute-boundary] Loaded ${cases.length} fixtures from ${CASES_PATH}`);
   console.log(`[run-execute-boundary] Model: ${model}, temperature: ${temperature}`);
-  console.log(`[run-execute-boundary] System prompt: eval/SKILL.md (${systemPrompt.length} chars)`);
+  console.log(`[run-execute-boundary] System prompt source: ${systemPromptSource} (${systemPrompt.length} chars)`);
 
   const stamp = isoStamp();
   if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
@@ -128,7 +165,8 @@ async function main() {
     finished_at: finishedAt,
     model,
     temperature,
-    system_prompt_source: "eval/SKILL.md",
+    system_prompt_source: systemPromptSource,
+    system_prompt_length_chars: systemPrompt.length,
     cases_file: path.relative(EVAL_ROOT, CASES_PATH),
     raw_results_file: path.relative(EVAL_ROOT, outPath),
     raw_results_sha256: rawSha
