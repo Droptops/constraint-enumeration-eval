@@ -32,7 +32,7 @@ evidence index, confirming v0.8 is untouched.
 - **Driver script**: `<local_windows_evidence_folder>\run_scorer_parity.js`
   (read-only local driver; not part of the repo).
 - **Scorer loaded via**: dynamic ESM `import()` of
-  `C:\Users\m4vil\constraint-enumeration-eval\eval\lib\scorerParity.js`
+  `eval/lib/scorerParity.js`
   (master working tree at commit `36e0291`).
 - **Date run**: 2026-05-11.
 - **h019 treatment**: hard-coded as `INVALID_CASE` per
