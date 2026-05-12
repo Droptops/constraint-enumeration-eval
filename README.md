@@ -29,6 +29,7 @@ It is:
 - **Targeted champion** (missing-information / clarification-expected blocker class): `production_blocker_first_v6.7_candidate`
 - **v6.7 is NOT globally promoted.**
 - **r15 is planned, not launched.**
+- **AAR v0.8 evidence trail (packaged May 2026):** Human-adjudicated holdout — 38/39 exclusion-scenario pass; deterministic scorer — 195/195 field-level parity. See [eval/public_notes/aar_v0_8_validation_index.md](eval/public_notes/aar_v0_8_validation_index.md) and [docs/index.html](docs/index.html).
 
 ## Reading order
 
