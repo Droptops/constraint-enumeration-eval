@@ -1,0 +1,1059 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ConstraintGate — Constraint-Enumeration Eval</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --paper: #f4efe4;
+  --paper-2: #ebe5d6;
+  --paper-3: #e0d8c4;
+  --ink: #1a1612;
+  --ink-2: #4a443a;
+  --muted: #6c655a;
+  --faint: #968d7d;
+  --rule: #c9c0ad;
+  --rule-2: #d8d0bd;
+  --red: #b8362d;
+  --red-bg: #f0d8c8;
+  --green: #4a6b3a;
+  --green-bg: #d8e0c8;
+  --blue: #2d5a8a;
+  --blue-bg: #d0dae8;
+  --amber: #a07020;
+  --amber-bg: #ecdcbc;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Newsreader", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(0,0,0,0.015) 0, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(0,0,0,0.02) 0, transparent 55%);
+}
+
+/* layout */
+.wrap { max-width: 980px; margin: 0 auto; padding: 48px 28px 96px; }
+@media (min-width: 800px) { .wrap { padding: 72px 56px 120px; } }
+
+/* masthead */
+.mast {
+border-top: 3px solid var(--ink);
+border-bottom: 1px solid var(--ink);
+padding: 24px 0 18px;
+margin-bottom: 40px;
+display: grid;
+grid-template-columns: 1fr;
+gap: 8px;
+}
+.mast .meta {
+display: flex;
+justify-content: space-between;
+font-family: var(--mono);
+font-size: 11px;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+color: var(--muted);
+}
+.mast h1 {
+font-family: var(--display);
+font-weight: 900;
+font-size: clamp(56px, 12vw, 116px);
+font-variation-settings: "opsz" 144;
+letter-spacing: -0.035em;
+line-height: 0.88;
+margin: 6px 0 8px;
+color: var(--ink);
+}
+.mast h1 em {
+font-style: italic;
+font-weight: 500;
+font-variation-settings: "opsz" 144;
+color: var(--ink-2);
+}
+.mast .sub {
+font-family: var(--body);
+font-style: italic;
+font-size: 18px;
+color: var(--ink-2);
+max-width: 56ch;
+margin-top: 6px;
+}
+.mast .path {
+font-family: var(--mono);
+font-size: 12px;
+color: var(--muted);
+margin-top: 10px;
+}
+.mast .path a { color: var(--blue); text-decoration: none; border-bottom: 1px solid var(--rule); }
+
+/* sections */
+section { margin: 56px 0; }
+section + section { border-top: 1px solid var(--rule-2); padding-top: 56px; }
+.section-tag {
+font-family: var(--mono);
+font-size: 11px;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--muted);
+margin-bottom: 12px;
+display: flex;
+align-items: center;
+gap: 12px;
+}
+.section-tag::before {
+content: "";
+width: 24px;
+height: 1px;
+background: var(--ink);
+display: inline-block;
+}
+h2 {
+font-family: var(--display);
+font-weight: 500;
+font-variation-settings: "opsz" 100;
+font-size: clamp(28px, 4.5vw, 42px);
+letter-spacing: -0.018em;
+line-height: 1.08;
+margin: 0 0 20px;
+}
+h2 em { font-style: italic; color: var(--ink-2); }
+h3 {
+font-family: var(--display);
+font-weight: 600;
+font-size: 20px;
+letter-spacing: -0.01em;
+margin: 28px 0 10px;
+}
+p { margin: 0 0 16px; }
+p.lede {
+font-size: 19px;
+color: var(--ink-2);
+max-width: 62ch;
+}
+
+/* the thesis pull quote */
+.thesis {
+font-family: var(--display);
+font-style: italic;
+font-weight: 400;
+font-variation-settings: "opsz" 144;
+font-size: clamp(22px, 3.5vw, 32px);
+line-height: 1.25;
+color: var(--ink);
+border-left: 3px solid var(--red);
+padding: 6px 0 6px 24px;
+margin: 0;
+max-width: 64ch;
+}
+.thesis .by {
+display: block;
+font-style: normal;
+font-family: var(--mono);
+font-size: 11px;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--muted);
+margin-top: 14px;
+}
+
+/* status strip */
+.status-strip {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+gap: 0;
+border: 1px solid var(--ink);
+background: var(--paper-2);
+}
+.status-cell {
+padding: 16px 18px;
+border-right: 1px solid var(--rule);
+position: relative;
+}
+.status-cell:last-child { border-right: none; }
+.status-cell .label {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--muted);
+}
+.status-cell .value {
+font-family: var(--display);
+font-size: 18px;
+font-weight: 600;
+margin-top: 4px;
+line-height: 1.2;
+}
+.status-cell .qual {
+font-family: var(--mono);
+font-size: 11px;
+color: var(--ink-2);
+margin-top: 2px;
+}
+.dot {
+display: inline-block;
+width: 8px; height: 8px;
+border-radius: 50%;
+margin-right: 6px;
+vertical-align: middle;
+}
+.dot.frozen { background: var(--green); }
+.dot.active { background: var(--blue); }
+.dot.planned { background: var(--amber); }
+.dot.targeted { background: var(--red); }
+
+/* failure modes grid */
+.failures {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+gap: 0;
+border: 1px solid var(--rule);
+margin: 24px 0;
+}
+.failure {
+padding: 20px 22px;
+border-right: 1px solid var(--rule);
+border-bottom: 1px solid var(--rule);
+background: var(--paper-2);
+}
+.failure:last-child { border-right: none; }
+.failure .num {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.18em;
+color: var(--faint);
+margin-bottom: 8px;
+}
+.failure .wrong {
+font-family: var(--display);
+font-size: 18px;
+font-weight: 600;
+color: var(--ink);
+font-style: italic;
+}
+.failure .arrow {
+display: block;
+font-family: var(--mono);
+font-size: 11px;
+color: var(--muted);
+margin: 6px 0;
+}
+.failure .right {
+font-family: var(--display);
+font-size: 16px;
+color: var(--ink-2);
+}
+
+/* the big question */
+.big-q {
+font-family: var(--display);
+font-weight: 700;
+font-variation-settings: "opsz" 144;
+font-size: clamp(28px, 5vw, 48px);
+line-height: 1.08;
+letter-spacing: -0.02em;
+margin: 36px 0 12px;
+max-width: 24ch;
+}
+.big-q em { font-style: italic; font-weight: 400; color: var(--red); }
+
+/* conjunction stack */
+.conjunction {
+background: var(--paper-2);
+border: 1px solid var(--ink);
+padding: 28px;
+margin: 28px 0;
+position: relative;
+}
+.conjunction .preamble {
+font-style: italic;
+color: var(--ink-2);
+margin-bottom: 18px;
+font-size: 16px;
+}
+.conj-row {
+display: flex;
+align-items: baseline;
+gap: 16px;
+padding: 10px 0;
+border-bottom: 1px dotted var(--rule);
+}
+.conj-row:last-child { border-bottom: none; }
+.conj-op {
+font-family: var(--mono);
+font-size: 12px;
+font-weight: 700;
+color: var(--red);
+letter-spacing: 0.08em;
+min-width: 38px;
+}
+.conj-clause {
+font-family: var(--display);
+font-size: 18px;
+color: var(--ink);
+}
+.conj-foot {
+margin-top: 18px;
+font-family: var(--mono);
+font-size: 12px;
+color: var(--muted);
+padding-top: 14px;
+border-top: 1px solid var(--rule);
+}
+
+/* results table */
+.results-table {
+width: 100%;
+border-collapse: collapse;
+margin: 18px 0 8px;
+font-family: var(--mono);
+font-size: 13px;
+}
+.results-table th {
+text-align: left;
+font-weight: 500;
+font-size: 11px;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+color: var(--muted);
+padding: 12px 12px;
+border-bottom: 1px solid var(--ink);
+}
+.results-table td {
+padding: 14px 12px;
+border-bottom: 1px solid var(--rule);
+vertical-align: middle;
+}
+.results-table tr:last-child td { border-bottom: 1px solid var(--ink); }
+.results-table .cond { font-family: var(--display); font-size: 15px; font-weight: 500; }
+.results-table .cond small {
+display: block;
+font-family: var(--mono);
+font-size: 10px;
+color: var(--faint);
+letter-spacing: 0.1em;
+text-transform: uppercase;
+margin-top: 2px;
+font-weight: 400;
+}
+.results-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.results-table tr.delta td { background: var(--paper-3); }
+.results-table tr.delta .cond { font-style: italic; color: var(--ink-2); }
+.delta-good { color: var(--green); font-weight: 700; }
+.delta-flat { color: var(--muted); }
+.results-cap {
+font-family: var(--mono);
+font-size: 11px;
+color: var(--muted);
+margin: 4px 0 0;
+letter-spacing: 0.04em;
+}
+
+/* OE split */
+.oe-split {
+display: grid;
+grid-template-columns: 1fr;
+gap: 18px;
+margin: 24px 0;
+}
+@media (min-width: 720px) {
+.oe-split { grid-template-columns: 1fr 1fr; }
+}
+.oe-card {
+border: 1px solid var(--ink);
+padding: 22px 24px;
+background: var(--paper-2);
+position: relative;
+}
+.oe-card.b { background: var(--paper-2); }
+.oe-card.a { background: var(--paper-3); }
+.oe-card .tag {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--red);
+margin-bottom: 8px;
+}
+.oe-card h4 {
+font-family: var(--display);
+font-size: 22px;
+font-weight: 700;
+margin: 0 0 6px;
+letter-spacing: -0.01em;
+}
+.oe-card .def { color: var(--ink-2); margin-bottom: 14px; }
+.oe-card .judge {
+font-family: var(--mono);
+font-size: 12px;
+color: var(--muted);
+border-top: 1px dotted var(--rule);
+padding-top: 12px;
+}
+.oe-card .judge strong { color: var(--ink); font-weight: 700; }
+.oe-headline {
+font-family: var(--display);
+font-style: italic;
+font-size: 18px;
+color: var(--ink);
+margin: 18px 0 6px;
+}
+.oe-headline strong { font-style: normal; color: var(--red); font-weight: 700; }
+
+/* schema table */
+.schema {
+width: 100%;
+border-collapse: collapse;
+margin: 20px 0;
+}
+.schema th, .schema td {
+text-align: left;
+padding: 12px 14px;
+border-bottom: 1px solid var(--rule);
+vertical-align: top;
+}
+.schema th {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+color: var(--muted);
+border-bottom: 1px solid var(--ink);
+}
+.schema .field {
+font-family: var(--mono);
+font-size: 13px;
+font-weight: 700;
+color: var(--ink);
+white-space: nowrap;
+}
+.schema .desc {
+font-family: var(--body);
+font-size: 15px;
+color: var(--ink-2);
+}
+.schema-foot {
+font-family: var(--mono);
+font-size: 12px;
+color: var(--muted);
+margin-top: 8px;
+}
+
+/* status pills */
+.pill {
+display: inline-block;
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+padding: 3px 8px;
+border-radius: 2px;
+margin-right: 6px;
+border: 1px solid currentColor;
+}
+.pill.gate { color: var(--red); background: var(--red-bg); border-color: var(--red); }
+.pill.diag { color: var(--blue); background: var(--blue-bg); border-color: var(--blue); }
+.pill.exp { color: var(--amber); background: var(--amber-bg); border-color: var(--amber); }
+
+/* architecture flow */
+.flow {
+margin: 24px 0;
+padding: 20px;
+background: var(--paper-2);
+border: 1px solid var(--rule);
+overflow-x: auto;
+}
+.flow-row {
+display: flex;
+align-items: center;
+gap: 8px;
+min-width: 720px;
+font-family: var(--mono);
+}
+.flow-node {
+padding: 14px 16px;
+border: 1px solid var(--ink);
+background: var(--paper);
+font-size: 13px;
+font-weight: 500;
+white-space: nowrap;
+flex: 1;
+text-align: center;
+}
+.flow-arrow {
+color: var(--red);
+font-weight: 700;
+font-size: 18px;
+}
+.flow-cap {
+font-family: var(--mono);
+font-size: 11px;
+color: var(--muted);
+margin-top: 10px;
+line-height: 1.5;
+}
+
+/* code block */
+pre.code {
+background: var(--paper-2);
+border: 1px solid var(--rule);
+border-left: 3px solid var(--ink);
+padding: 18px 20px;
+font-family: var(--mono);
+font-size: 12.5px;
+line-height: 1.55;
+overflow-x: auto;
+margin: 16px 0;
+color: var(--ink);
+}
+pre.code .k { color: var(--blue); }
+pre.code .s { color: var(--red); }
+pre.code .n { color: var(--amber); }
+pre.code .c { color: var(--muted); font-style: italic; }
+
+/* callouts */
+.callout {
+border-left: 3px solid var(--red);
+background: var(--paper-2);
+padding: 20px 24px;
+margin: 22px 0;
+}
+.callout .tag {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--red);
+margin-bottom: 8px;
+}
+.callout p { margin: 0 0 10px; color: var(--ink); }
+.callout p:last-child { margin-bottom: 0; }
+
+/* guardrails list */
+.guardrails { list-style: none; padding: 0; margin: 16px 0; counter-reset: g; }
+.guardrails li {
+position: relative;
+padding: 16px 0 16px 56px;
+border-bottom: 1px solid var(--rule-2);
+counter-increment: g;
+}
+.guardrails li:last-child { border-bottom: none; }
+.guardrails li::before {
+content: counter(g, decimal-leading-zero);
+position: absolute;
+left: 0;
+top: 18px;
+font-family: var(--mono);
+font-size: 12px;
+color: var(--red);
+letter-spacing: 0.1em;
+font-weight: 700;
+}
+.guardrails strong {
+font-family: var(--display);
+font-style: italic;
+font-weight: 500;
+color: var(--ink);
+}
+
+/* falsification list */
+.falsify {
+list-style: none;
+padding: 0;
+margin: 16px 0;
+border-top: 1px solid var(--rule);
+}
+.falsify li {
+padding: 14px 0 14px 36px;
+border-bottom: 1px solid var(--rule);
+font-family: var(--body);
+font-size: 16px;
+color: var(--ink-2);
+position: relative;
+}
+.falsify li::before {
+content: "×";
+position: absolute;
+left: 6px;
+top: 12px;
+font-family: var(--display);
+font-weight: 700;
+font-size: 22px;
+color: var(--red);
+line-height: 1;
+}
+
+/* AAR evidence */
+.aar {
+display: grid;
+grid-template-columns: 1fr;
+gap: 0;
+border: 1px solid var(--ink);
+margin: 22px 0;
+}
+@media (min-width: 700px) {
+.aar { grid-template-columns: 1fr 1fr; }
+}
+.aar-cell {
+padding: 22px 24px;
+background: var(--paper-2);
+border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 700px) {
+.aar-cell:first-child { border-right: 1px solid var(--rule); border-bottom: none; }
+.aar-cell:last-child { border-bottom: none; }
+}
+.aar-cell .label {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: var(--muted);
+margin-bottom: 6px;
+}
+.aar-cell .big {
+font-family: var(--display);
+font-size: 48px;
+font-weight: 700;
+font-variation-settings: "opsz" 144;
+letter-spacing: -0.02em;
+color: var(--ink);
+line-height: 1;
+margin-bottom: 8px;
+}
+.aar-cell .big .frac { color: var(--ink-2); font-weight: 500; }
+.aar-cell .what {
+font-family: var(--display);
+font-size: 17px;
+color: var(--ink);
+margin-bottom: 8px;
+font-weight: 500;
+}
+.aar-cell .scope {
+font-family: var(--mono);
+font-size: 11.5px;
+color: var(--muted);
+line-height: 1.55;
+padding-top: 10px;
+border-top: 1px dotted var(--rule);
+}
+.aar-cell .scope strong { color: var(--red); font-weight: 700; }
+
+/* footer */
+footer {
+margin-top: 80px;
+border-top: 3px solid var(--ink);
+padding-top: 24px;
+font-family: var(--mono);
+font-size: 12px;
+color: var(--muted);
+display: grid;
+grid-template-columns: 1fr;
+gap: 16px;
+}
+@media (min-width: 700px) {
+footer { grid-template-columns: 2fr 1fr; }
+}
+footer h5 {
+font-family: var(--mono);
+font-size: 10px;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+color: var(--ink);
+margin: 0 0 10px;
+}
+footer a {
+color: var(--blue);
+text-decoration: none;
+border-bottom: 1px solid var(--rule);
+}
+footer ul { list-style: none; padding: 0; margin: 0; }
+footer ul li { padding: 4px 0; }
+
+/* utility */
+.mono { font-family: var(--mono); }
+.faint { color: var(--faint); }
+.hl { background: linear-gradient(transparent 60%, var(--amber-bg) 60%); padding: 0 2px; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <!-- MASTHEAD -->
+
+  <header class="mast">
+    <div class="meta">
+      <span>Constraint-Enumeration Eval</span>
+      <span>MIT License · 2026</span>
+    </div>
+    <h1>Constraint<em>Gate</em></h1>
+    <div class="sub">Constraint-enumeration prompting skill + HOB-pattern eval. Tests whether forcing explicit conjunction-checking improves LLM accuracy on multi-constraint real-world decision tasks.</div>
+    <div class="path">github.com / <a href="https://github.com/Droptops/constraint-enumeration-eval">Droptops / constraint-enumeration-eval</a> · master</div>
+  </header>
+
+  <!-- THESIS -->
+
+  <section style="margin-top:0;">
+    <p class="thesis">
+      Most agent failures are not reasoning failures. They are meaning, authority, and work-primitive routing failures. ConstraintGate measures whether a model performed the work it was authorized to do — not whether the answer sounded thoughtful.
+      <span class="by">— Project thesis</span>
+    </p>
+  </section>
+
+  <!-- STATUS STRIP -->
+
+  <section>
+    <div class="section-tag">State of play</div>
+    <h2>Where the work is, right now.</h2>
+    <div class="status-strip">
+      <div class="status-cell">
+        <div class="label">Round</div>
+        <div class="value"><span class="dot frozen"></span>r14b complete</div>
+        <div class="qual">Frozen, AAR v0.8 packaged</div>
+      </div>
+      <div class="status-cell">
+        <div class="label">Global champion</div>
+        <div class="value"><span class="dot active"></span>v6.3</div>
+        <div class="qual">production_blocker_first_v6.3</div>
+      </div>
+      <div class="status-cell">
+        <div class="label">Targeted champion</div>
+        <div class="value"><span class="dot targeted"></span>v6.7</div>
+        <div class="qual">missing-info / clarification class</div>
+      </div>
+      <div class="status-cell">
+        <div class="label">Next round</div>
+        <div class="value"><span class="dot planned"></span>r15 planned</div>
+        <div class="qual">WUAP schema, not launched</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT IT MEASURES -->
+
+  <section>
+    <div class="section-tag">What ConstraintGate measures</div>
+    <h2>Answer quality is not work&nbsp;authorization.</h2>
+    <p class="lede">A model can sound helpful and still fail by doing the wrong kind of work. The core eval question is not whether the answer was reasonable — it is whether the model performed the work it was licensed to perform.</p>
+
+<div class="failures">
+  <div class="failure">
+    <div class="num">01</div>
+    <div class="wrong">Recommending</div>
+    <span class="arrow">— when it should —</span>
+    <div class="right">Ask</div>
+  </div>
+  <div class="failure">
+    <div class="num">02</div>
+    <div class="wrong">Executing</div>
+    <span class="arrow">— when it should —</span>
+    <div class="right">Defer</div>
+  </div>
+  <div class="failure">
+    <div class="num">03</div>
+    <div class="wrong">Explaining</div>
+    <span class="arrow">— when it should —</span>
+    <div class="right">State a blocker</div>
+  </div>
+  <div class="failure">
+    <div class="num">04</div>
+    <div class="wrong">Branching</div>
+    <span class="arrow">— when it should —</span>
+    <div class="right">Stop</div>
+  </div>
+  <div class="failure">
+    <div class="num">05</div>
+    <div class="wrong">Producing confidence</div>
+    <span class="arrow">— when essential info is —</span>
+    <div class="right">Missing</div>
+  </div>
+</div>
+
+<p class="big-q">Did the model <em>perform the work</em> it was authorized to do?</p>
+
+  </section>
+
+  <!-- THE CONJUNCTION -->
+
+  <section>
+    <div class="section-tag">Core claim under test</div>
+    <h2>The pass condition is a <em>conjunction</em>, not a vibe.</h2>
+    <p class="lede">A useful real-world recommendation must satisfy every clause. The judge fills structured fields; the pass/fail score is computed in code via an AND gate. The judge does not own the call.</p>
+
+<div class="conjunction">
+  <div class="preamble">A useful real-world recommendation must satisfy:</div>
+  <div class="conj-row"><div class="conj-op">     </div><div class="conj-clause">constraint application</div></div>
+  <div class="conj-row"><div class="conj-op">AND</div><div class="conj-clause">correct final answer</div></div>
+  <div class="conj-row"><div class="conj-op">AND</div><div class="conj-clause">decision usefulness</div></div>
+  <div class="conj-row"><div class="conj-op">AND</div><div class="conj-clause">no hard-constraint violation</div></div>
+  <div class="conj-row"><div class="conj-op">AND</div><div class="conj-clause">no unnecessary clarification</div></div>
+  <div class="conj-row"><div class="conj-op">AND</div><div class="conj-clause">no harmful over-enumeration</div></div>
+  <div class="conj-foot">Diagnostics retained but not gating: <span class="hl">considers_binding_constraints_implicitly</span>, <span class="hl">enumerates_binding_constraints_explicitly</span>.</div>
+</div>
+
+  </section>
+
+  <!-- R14B RESULTS -->
+
+  <section>
+    <div class="section-tag">r14b headline results</div>
+    <h2>v6.3 vs v6.7 — targeted promotion, <em>not global</em>.</h2>
+    <p class="lede">GPT-5.1 primary judge, n = 60 per condition, missing-information / clarification-expected blocker holdout class. All four pre-registered gate metrics passed under the primary judge. Opus 4.7 corroborates direction on HCV, TypeA, and OverEnum on identical outputs.</p>
+
+<table class="results-table" aria-label="r14b results">
+  <thead>
+    <tr>
+      <th>Condition</th>
+      <th class="num">HCV %</th>
+      <th class="num">TypeA %</th>
+      <th class="num">OverEnum %</th>
+      <th class="num">Invalid %</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="cond">v6.3<small>Global champion</small></td>
+      <td class="num">28.3</td>
+      <td class="num">26.7</td>
+      <td class="num">40.0</td>
+      <td class="num">0.0</td>
+    </tr>
+    <tr>
+      <td class="cond">v6.7<small>Targeted champion</small></td>
+      <td class="num">23.3</td>
+      <td class="num">25.0</td>
+      <td class="num">28.3</td>
+      <td class="num">0.0</td>
+    </tr>
+    <tr class="delta">
+      <td class="cond">Δ (rows / pp)</td>
+      <td class="num delta-good">−3 / −5.0</td>
+      <td class="num delta-flat">−1 / −1.7</td>
+      <td class="num delta-good">−7 / −11.7</td>
+      <td class="num delta-flat">0</td>
+    </tr>
+  </tbody>
+</table>
+<p class="results-cap">Lower is better on every column. TypeA delta is non-regression only — the gate passed because TypeA is a floor, not because v6.7 materially improved it.</p>
+
+  </section>
+
+  <!-- OE SPLIT -->
+
+  <section>
+    <div class="section-tag">The OE finding</div>
+    <h2>OverEnum is <em>undertyped</em>.</h2>
+    <p class="lede">The most consequential finding in r14b is methodological, not engineering. On identical outputs, v6.7 scored 28.3% OverEnum under GPT-5.1 and 0.0% under Opus 4.7 — and the gap <em>widens</em> on prompt-engineered conditions (v6.6, v6.7), it does not narrow. Two distinct constructs are being judged under one label.</p>
+
+<div class="oe-split">
+  <div class="oe-card b">
+    <div class="tag">B-OverEnum</div>
+    <h4>Behavioral</h4>
+    <p class="def">Extra constraint listing. Scaffolding, branches, verbose enumeration in the surface text.</p>
+    <div class="judge"><strong>GPT-5.1</strong> appears more sensitive to this surface pattern.</div>
+  </div>
+  <div class="oe-card a">
+    <div class="tag">A-OverEnum</div>
+    <h4>Authority</h4>
+    <p class="def">Output outside the licensed work primitive — beyond the agent's authority boundary, regardless of style.</p>
+    <div class="judge"><strong>Opus 4.7</strong> appears closer to this work-shape pattern.</div>
+  </div>
+</div>
+
+<p class="oe-headline">r15 will split them. <strong>Legacy OverEnum stays the gate.</strong> A-OverEnum and B-OverEnum land as diagnostic readouts only — promotion to gate metric in r16+ requires inter-judge reliability and correlation evidence first.</p>
+
+  </section>
+
+  <!-- WUAP SCHEMA -->
+
+  <section>
+    <div class="section-tag">r15 schema</div>
+    <h2>Work Unit · Authority · Primitive.</h2>
+    <p class="lede">A per-case annotation schema designed to separate the two OE constructs at source — by recording what the user is actually trying to accomplish, what posture the agent is licensed to take, and which action types are in vs out of bounds.</p>
+
+<table class="schema">
+  <thead>
+    <tr>
+      <th style="width:38%;">Field</th>
+      <th>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td class="field">surface_request</td><td class="desc">The literal user request as stated.</td></tr>
+    <tr><td class="field">work_unit</td><td class="desc">What the user is actually trying to accomplish.</td></tr>
+    <tr><td class="field">meaning_hierarchy</td><td class="desc">The inferred goal behind the work unit, if distinct from the surface.</td></tr>
+    <tr><td class="field">authority_posture</td><td class="desc"><span class="pill diag">ADVISE</span><span class="pill diag">EXECUTE</span><span class="pill diag">DEFER</span><span class="pill diag">STOP</span></td></tr>
+    <tr><td class="field">intent_class</td><td class="desc">recommendation-seeking · clarification-seeking · execution-requesting · &c.</td></tr>
+    <tr><td class="field">required_primary_primitive</td><td class="desc">The one licensed action type the model must produce.</td></tr>
+    <tr><td class="field">licensed_secondary_primitives</td><td class="desc">Additional action types that are acceptable.</td></tr>
+    <tr><td class="field">forbidden_primitives</td><td class="desc">Action types the model must <em>not</em> produce.</td></tr>
+    <tr><td class="field">policy_constraints</td><td class="desc">Hard constraints from policy, regulation, or domain rules.</td></tr>
+    <tr><td class="field">overenum_traps</td><td class="desc">Constraint-listing patterns known to trigger false OverEnum on this case.</td></tr>
+  </tbody>
+</table>
+<div class="schema-foot">
+  Status in r15: <span class="pill gate">Legacy OverEnum — gate</span> <span class="pill diag">A / B OverEnum — diagnostic</span> <span class="pill exp">PrimitiveMatch — exploratory, needs IAA validation</span>
+</div>
+
+  </section>
+
+  <!-- ARCHITECTURE -->
+
+  <section>
+    <div class="section-tag">Architecture</div>
+    <h2>How a case becomes a row.</h2>
+    <div class="flow">
+      <div class="flow-row">
+        <div class="flow-node">Cases</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Model answer</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Structured judge</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Code gate (AND)</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Metrics</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">JSONL artifacts</div>
+      </div>
+      <div class="flow-cap">Server controls prompt, model, temperature, case lookup, judge prompt, and token budget. Browser never sends arbitrary <span class="hl">system</span>, <span class="hl">messages</span>, or <span class="hl">max_tokens</span>. Each row carries <span class="hl">skill_sha256</span>, <span class="hl">cases_sha256</span>, and <span class="hl">run_config_sha256</span>; resume refuses to mix incompatible hashes.</div>
+    </div>
+  </section>
+
+  <!-- CANONICAL CASE -->
+
+  <section>
+    <div class="section-tag">The canonical case</div>
+    <h2>Car wash, 50 metres away.</h2>
+    <p class="lede">The case set has 40 in-sample cases across <span class="mono">physical · ambiguity · business · safety</span>, intentionally mixing direct-answer, clarification-expected, and either-acceptable cases inside each category so category doesn't proxy expected behavior. Schema v1.1 separates facts, constraints, conclusions, and unacceptable answers.</p>
+
+<pre class="code">{
+  <span class="k">"schema_version"</span>: <span class="s">"1.1"</span>,
+  <span class="k">"id"</span>: <span class="s">"car_wash_50m"</span>,
+  <span class="k">"category"</span>: <span class="s">"physical"</span>,
+  <span class="k">"prompt"</span>: <span class="s">"I need to get my car washed. The car wash is 50m away. Should I walk or drive?"</span>,
+  <span class="k">"expected_behavior"</span>: <span class="s">"direct_answer"</span>,
+  <span class="k">"requires_direct_answer"</span>: <span class="n">true</span>,
+  <span class="k">"clarification_expected"</span>: <span class="n">false</span>,
+  <span class="k">"expected_final_answer"</span>: <span class="s">"drive"</span>,
+  <span class="k">"hard_constraints"</span>: [
+    <span class="s">"The car must physically arrive at the car wash"</span>,
+    <span class="s">"Walking alone does not move the car"</span>
+  ],
+  <span class="k">"soft_preferences"</span>: [<span class="s">"The car wash is close"</span>],
+  <span class="k">"prohibited_failure_modes"</span>: [
+    <span class="s">"Optimizes for short distance instead of moving the car"</span>
+  ]
+}</pre>
+
+<p class="results-cap">The trap: a "walk, it's only 50m" answer optimizes for the wrong objective. The goal isn't to move the person — it's to move the car. Constraint application and final-answer correctness diverge in cases like this; both must hold for a pass.</p>
+
+  </section>
+
+  <!-- GUARDRAILS -->
+
+  <section>
+    <div class="section-tag">Interpretation guardrails</div>
+    <h2>What r14b is <em>not</em> evidence for.</h2>
+    <p class="lede">Scope claims are load-bearing. The longer the artifact lives, the more often it'll be cited out of context — these are the lines that have to travel with the headline number.</p>
+
+<ol class="guardrails">
+  <li><strong>Targeted, not global.</strong> v6.7 was designed for and evaluated on the missing-information / clarification-expected blocker class only.</li>
+  <li><strong>TypeA Δ is non-regression, not improvement.</strong> −1 row / −1.7pp under the primary judge. The gate passed because TypeA is a floor, not because v6.7 materially improved TypeA.</li>
+  <li><strong>Opus 4.7 corroborates direction. It does not own the call.</strong> The promotion gate is anchored to the GPT-5.1 primary judge. Opus shifts confidence, not authority.</li>
+  <li><strong>v6.3 remains the global default.</strong> Default routing continues to use v6.3 outside the targeted class.</li>
+  <li><strong>Global promotion requires separate evidence.</strong> Non-regression across non-targeted hard-constraint classes — jurisdictional, expertise-required, scope-violation, blocker-present, physical-safety-inference. That evaluation is r15 Track 4.</li>
+</ol>
+
+  </section>
+
+  <!-- FALSIFICATION -->
+
+  <section>
+    <div class="section-tag">What would falsify the result</div>
+    <h2>The list that kills the claim.</h2>
+    <p class="lede">Pre-registered failure modes. Any of these, observed, is a serious negative result for the project — not a debugging task.</p>
+
+<ul class="falsify">
+  <li>The primary prompt beats <span class="mono">baseline</span> but not <span class="mono">careful_control</span>.</li>
+  <li>The primary prompt beats <span class="mono">baseline</span> but not <span class="mono">constraint_axis_prompting</span>.</li>
+  <li><span class="mono">style_matched_baseline</span> reaches primary-prompt-like pass rates without changing the baseline decision.</li>
+  <li>The lift disappears under OpenAI or Gemini rejudging.</li>
+  <li>The lift exists only in the longest answer-length quartile.</li>
+  <li>Held-out cases show materially smaller or reversed lift relative to the in-sample corpus.</li>
+  <li>v6.7 regresses HCV, TypeA, or OverEnum vs v6.3 on non-targeted hard-constraint classes (r15 Track 4).</li>
+</ul>
+
+  </section>
+
+  <!-- AAR EVIDENCE -->
+
+  <section>
+    <div class="section-tag">AAR v0.8 — evidence trail</div>
+    <h2>Two evidence layers. Don't conflate them.</h2>
+    <p class="lede">Packaged in PR #16 (May 11, 2026). The validation index explicitly separates behavioral evidence from instrument validation so future citations can't accidentally merge them.</p>
+
+<div class="aar">
+  <div class="aar-cell">
+    <div class="label">Layer 1 · Behavioral evidence</div>
+    <div class="big">38<span class="frac">/39</span></div>
+    <div class="what">Exclusion-scenario pass under second-independent human adjudication.</div>
+    <div class="scope">Scope: behavioral evidence on the frozen 39-case exclusion set. <strong>Not</strong> a generalization claim; not a re-run benchmark.</div>
+  </div>
+  <div class="aar-cell">
+    <div class="label">Layer 2 · Instrument validation</div>
+    <div class="big">195<span class="frac">/195</span></div>
+    <div class="what">Field-level parity between scorerParity.js (commit 36e0291) and second-independent human labels.</div>
+    <div class="scope">Scope: scorer-vs-human-label parity on the frozen 39-case set. <strong>Not</strong> validation of future model behavior or generalization beyond this set.</div>
+  </div>
+</div>
+
+<div class="callout">
+  <div class="tag">Disclosed limits</div>
+  <p>v0.8 frozen ZIP SHA unchanged. v0.9 not created. No model/API evaluations run as part of the packaging PR. Curated evidence files, raw responses, frozen artifacts, and quarantined artifacts not modified. The scorer-parity result validates the instrument — it is not a new automated benchmark pass.</p>
+</div>
+
+  </section>
+
+  <!-- FOOTER -->
+
+  <footer>
+    <div>
+      <h5>Reading order</h5>
+      <ul>
+        <li>· r14b targeted promotion memo · <span class="faint">eval/project_r14b_v67_targeted_promotion_memo.md</span></li>
+        <li>· r15 WUAP schema research plan · <span class="faint">eval/project_r15_primitive_schema_draft.md</span></li>
+        <li>· AAR v0.8 validation index · <span class="faint">eval/public_notes/aar_v0_8_validation_index.md</span></li>
+        <li>· Skill · <span class="faint">SKILL.md · SKILL_PRODUCTION.md</span></li>
+        <li>· Protocols · <span class="faint">BREAKTHROUGH_PROTOCOL.md · FRONTIER_LAB_PROTOCOL.md</span></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Repository</h5>
+      <ul>
+        <li><a href="https://github.com/Droptops/constraint-enumeration-eval">github.com/Droptops/constraint-enumeration-eval</a></li>
+        <li>License · MIT</li>
+        <li>JS 98.7% · CSS 1.3%</li>
+        <li>Branch · master</li>
+      </ul>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
