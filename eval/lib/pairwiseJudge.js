@@ -2,6 +2,7 @@ import { z } from "zod";
 import { callJudgeModel } from "./judgeModel.js";
 import { getJudgeTemperature } from "./config.js";
 import { seededBoolean } from "./seededRandom.js";
+import { isInvalidJudgeStopReason } from "./judge.js";
 
 export const PAIRWISE_MODES = ["gold_anchored", "gold_blind"];
 export const POSITION_ORDERS = ["seeded", "left_a", "right_a", "skill_a", "baseline_a"];
@@ -260,7 +261,7 @@ export async function judgePairwise({
     schemaName: "pairwise_judge"
   });
 
-  if (result.stop_reason === "refusal" || result.stop_reason === "max_tokens") {
+  if (isInvalidJudgeStopReason(result.stop_reason)) {
     return {
       valid_pairwise_response: false,
       mode,

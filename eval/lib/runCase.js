@@ -123,12 +123,14 @@ async function generateStyleMatchedBaseline({ testCase, baselineAnswer }) {
   });
 }
 
-function normalizeAnswerResult(result, metadata = {}) {
+export function normalizeAnswerResult(result, metadata = {}) {
   return {
     text: result.text,
     raw: result.raw,
     stop_reason: result.stop_reason,
-    truncated: result.stop_reason === "max_tokens",
+    // "incomplete" is the OpenAI Responses truncation signal; Anthropic/Gemini
+    // report token truncation as "max_tokens". (A refusal is not a truncation.)
+    truncated: result.stop_reason === "max_tokens" || result.stop_reason === "incomplete",
     ...metadata
   };
 }

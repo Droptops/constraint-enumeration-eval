@@ -61,6 +61,14 @@ test("mcnemar continuity-corrected p-value matches known b=10 c=2 value", () => 
   assert.ok(Math.abs(summary.approximate_p_value - 0.0433081) < 1e-4);
 });
 
+test("mcnemar approximate_p_value never exceeds 1 when |b-c|=1 (chiSquare=0)", () => {
+  // |b-c|=1 makes chiSquare=0, where the erfc approximation overshoots 1.0.
+  const summary = mcnemar([0], [1], "left", "right");
+  assert.equal(summary.chi_square_continuity_corrected, 0);
+  assert.ok(summary.approximate_p_value <= 1, `p-value should be <= 1, got ${summary.approximate_p_value}`);
+  assert.equal(summary.approximate_p_value, 1);
+});
+
 test("bootstrap CI returns ordered bounds", () => {
   const ci = bootstrapCi95([1, 0, 1, -1, 0], 200);
   assert.ok(ci.lower <= ci.upper);
