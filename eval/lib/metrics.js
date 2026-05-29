@@ -406,7 +406,10 @@ export function mcnemar(leftValues, rightValues, leftCondition, rightCondition) 
     left_one_right_zero: leftOneRightZero,
     discordant_pairs: discordant,
     chi_square_continuity_corrected: chiSquare,
-    approximate_p_value: erfc(Math.sqrt(chiSquare / 2))
+    // Clamp to a valid probability: the Abramowitz-Stegun erfc approximation
+    // returns ~1.0000000300000005 at x=0 (reached whenever |b-c|=1, i.e.
+    // chiSquare=0), which would otherwise report a p-value slightly above 1.
+    approximate_p_value: Math.min(1, erfc(Math.sqrt(chiSquare / 2)))
   };
 }
 

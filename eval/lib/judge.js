@@ -164,6 +164,17 @@ Grading rules:
 `;
 }
 
+// Stop reasons that mean the judge did not return a complete, trustworthy
+// structured judgment. "max_tokens" is the Anthropic/Gemini truncation signal;
+// "incomplete" is the OpenAI Responses equivalent (passed through from
+// data.status), which would otherwise be admitted and let a truncated judgment
+// flow into the gate.
+const INVALID_JUDGE_STOP_REASONS = new Set(["refusal", "max_tokens", "incomplete"]);
+
+export function isInvalidJudgeStopReason(stopReason) {
+  return INVALID_JUDGE_STOP_REASONS.has(stopReason);
+}
+
 export async function judgeAnswer({ testCase, answer }) {
   const prompt = buildJudgePrompt({ testCase, answer });
 
@@ -176,7 +187,7 @@ export async function judgeAnswer({ testCase, answer }) {
     schemaName: "constraint_judge"
   });
 
-  if (result.stop_reason === "refusal" || result.stop_reason === "max_tokens") {
+  if (isInvalidJudgeStopReason(result.stop_reason)) {
     return {
       valid_judge_response: false,
       raw: result.text,
