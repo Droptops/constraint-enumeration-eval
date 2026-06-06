@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "task_id": "none_vs_falsy_default",
+  "bug_type": "none_vs_falsy",
+  "description": "get_or_default() in defaults.py replaces any falsy value (0, '', [], False) with the default, but it should only replace None. Fix defaults.py to match the docstring.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_empty_string_kept",
+    "__heldout__/test_heldout.py::test_empty_list_kept"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_none_uses_default",
+    "__heldout__/test_heldout.py::test_truthy_kept"
+  ],
+  "gold_files": ["defaults.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "`value if value else default` treats falsy-but-present values as missing; should test `is not None`."
+}

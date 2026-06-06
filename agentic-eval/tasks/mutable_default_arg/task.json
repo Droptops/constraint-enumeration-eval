@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "task_id": "mutable_default_arg",
+  "bug_type": "mutable_default_argument",
+  "description": "collect() in accumulate.py should start a fresh list when no list is passed, but separate calls share state. Fix accumulate.py so the behavior matches the docstring.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_three_independent_calls",
+    "__heldout__/test_heldout.py::test_default_resets_each_call"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_explicit_list_is_used",
+    "__heldout__/test_heldout.py::test_appends_to_given_list"
+  ],
+  "gold_files": ["accumulate.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "Python mutable default argument: def f(x, acc=[]) shares one list across calls."
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "task_id": "dedupe_case_insensitive",
+  "bug_type": "missing_normalization",
+  "description": "dedupe_ci() in dedupe.py de-duplicates by exact match, but the docstring requires case-insensitive, whitespace-trimmed comparison while keeping the first occurrence's original form. Fix dedupe.py.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_whitespace_variants",
+    "__heldout__/test_heldout.py::test_mixed_case_multi"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_already_unique",
+    "__heldout__/test_heldout.py::test_empty"
+  ],
+  "gold_files": ["dedupe.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "De-dup compares raw values; needs case-folding and whitespace normalization on the comparison key."
+}

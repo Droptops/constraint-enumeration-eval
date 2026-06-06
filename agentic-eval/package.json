@@ -1,0 +1,32 @@
+{
+  "name": "agentic-eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SWE-bench-style agentic coding eval: a tool-use loop scored by a deterministic test oracle, with a ported constraint-enumeration trajectory layer. Phase 1: offline agentic spine proven with a fake model.",
+  "scripts": {
+    "smoke": "node scripts/smoke-fake-agent.js",
+    "step0": "node scripts/step0-real-probe.js",
+    "validate-tasks": "node scripts/validate-tasks.js",
+    "prove-suite": "node scripts/prove-suite.js",
+    "prove-resume": "node scripts/prove-resume.js",
+    "prove-judge": "node scripts/prove-judge.js",
+    "prove-real-judge": "node scripts/prove-real-judge.js",
+    "prove-parity": "node scripts/prove-parity.js",
+    "prove-introspect": "node scripts/prove-introspect.js",
+    "build-holdout": "node scripts/build-holdout.js",
+    "judge-suite": "node scripts/judge-suite.js",
+    "labels:init": "node scripts/init-labels.js",
+    "report-final": "node scripts/report-final.js",
+    "suite": "node scripts/run-suite.js",
+    "report": "node scripts/report.js",
+    "test": "node --test test/*.test.js",
+    "verify": "npm run validate-tasks && npm run prove-suite && npm run prove-resume && npm run prove-judge && npm run prove-parity && npm run prove-introspect && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "zod": "4.4.2"
+  }
+}

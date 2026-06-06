@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "task_id": "strip_prefix_lstrip",
+  "bug_type": "lstrip_vs_removeprefix",
+  "description": "strip_prefix() in textprep.py uses str.lstrip(prefix), which strips a SET of characters repeatedly instead of removing one leading prefix. Fix textprep.py to remove only a single leading full-prefix match.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_repeated_prefix_char",
+    "__heldout__/test_heldout.py::test_prefix_equals_remainder_start"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_no_match",
+    "__heldout__/test_heldout.py::test_clean_prefix"
+  ],
+  "gold_files": ["textprep.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "str.lstrip(prefix) treats prefix as a character set and strips repeatedly; should use startswith + slice (or removeprefix)."
+}
