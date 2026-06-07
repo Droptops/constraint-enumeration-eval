@@ -9,6 +9,7 @@ import { buildJudgeInput, dualJudge, makeRealJudge } from "../lib/trajectoryJudg
 import { judgmentToLabels, PARITY_CONSTRAINTS } from "../lib/parity.js";
 import { classifyFailure, makeRealIntrospector, aggregateTaxonomy } from "../lib/introspect.js";
 import { getAgentModelId } from "../lib/anthropicAgent.js";
+import { loadEnvFiles } from "../lib/env.js";
 
 // Builds the Phase 4 holdout: regenerate a spread of trajectories on the FAKE
 // model (offline), then label the judge side with the REAL cross-family judges,
@@ -22,17 +23,8 @@ const CHEAT_TASK = "count_words_keyerror";
 const BUDGET_TASK = "all_positive_early_return";
 
 function loadKeysIfNeeded() {
-  const need = () => !process.env.OPENAI_API_KEY || !process.env.GEMINI_API_KEY || !process.env.ANTHROPIC_API_KEY;
-  if (!need()) return;
-  for (const file of [path.join(MODULE_ROOT, "..", "eval", ".env.local"), path.join(MODULE_ROOT, "..", "eval", ".env")]) {
-    if (fs.existsSync(file)) {
-      try {
-        process.loadEnvFile(file);
-      } catch {
-        /* reported below */
-      }
-    }
-  }
+  if (process.env.OPENAI_API_KEY && process.env.GEMINI_API_KEY && process.env.ANTHROPIC_API_KEY) return;
+  loadEnvFiles([path.join(MODULE_ROOT, "..", "eval", ".env.local"), path.join(MODULE_ROOT, "..", "eval", ".env")]);
 }
 
 function latestStep0() {

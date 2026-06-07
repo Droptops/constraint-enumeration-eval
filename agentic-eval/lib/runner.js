@@ -6,6 +6,30 @@ import { createSandbox, cleanupSandbox } from "./sandbox.js";
 import { defaultTools } from "./tools.js";
 import { runAgent } from "./agent.js";
 import { scoreFinalState } from "./oracle.js";
+import { fileURLToPath } from "node:url";
+
+const LIB_DIR = path.dirname(fileURLToPath(import.meta.url));
+let cachedHarnessHash = null;
+
+// Hash of all behavior-determining harness source (lib/*.js + the netblock
+// sitecustomize). Folded into the run-config hash so a change to the agent loop,
+// agent client, sandbox, oracle, tools, judge, or runner invalidates cached rows
+// on resume. Without this, edits to the prompt/tool schema/sandbox/output cap/
+// model params could be silently "hash-verified" and preserve stale metrics.
+export function harnessHash() {
+  if (cachedHarnessHash) return cachedHarnessHash;
+  const parts = fs
+    .readdirSync(LIB_DIR)
+    .filter(name => name.endsWith(".js"))
+    .sort()
+    .map(name => ({ name, content: fs.readFileSync(path.join(LIB_DIR, name), "utf8") }));
+  const netblock = path.join(LIB_DIR, "netblock", "sitecustomize.py");
+  if (fs.existsSync(netblock)) {
+    parts.push({ name: "netblock/sitecustomize.py", content: fs.readFileSync(netblock, "utf8") });
+  }
+  cachedHarnessHash = sha256(stableJson(parts));
+  return cachedHarnessHash;
+}
 
 export function runConfigHash(task, modelId, pinnedPytest) {
   return sha256(
@@ -15,7 +39,8 @@ export function runConfigHash(task, modelId, pinnedPytest) {
       model_id: modelId,
       step_budget: task.step_budget,
       test_timeout_seconds: task.test_timeout_seconds,
-      pinned_pytest: pinnedPytest
+      pinned_pytest: pinnedPytest,
+      harness_sha256: harnessHash()
     })
   );
 }
@@ -80,6 +105,7 @@ async function runOne(task, model, venv, modelId, runConfigSha) {
       workspace_sha256: task.workspace_sha256,
       content_sha256: task.content_sha256,
       run_config_sha256: runConfigSha,
+      harness_sha256: harnessHash(),
       python_version: venv.python_version,
       pytest_version: venv.pytest_version,
       outcome: agent.solved ? "solved" : "unsolved",

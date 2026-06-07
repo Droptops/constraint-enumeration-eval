@@ -30,7 +30,10 @@ export function loadTask(taskDir) {
       manifest,
       workspace: dirEntries(workspaceDir),
       heldout: task.heldoutDir ? dirEntries(task.heldoutDir) : [],
-      gold: task.goldDir ? dirEntries(task.goldDir) : []
+      gold: task.goldDir ? dirEntries(task.goldDir) : [],
+      // cheat/ is consumed by the fake-cheat proof; include it so editing a
+      // planted cheat patch invalidates cached fake-cheat results.
+      cheat: task.cheatDir ? dirEntries(task.cheatDir) : []
     })
   );
 

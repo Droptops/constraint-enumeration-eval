@@ -7,6 +7,7 @@ import { runSuite } from "../lib/runner.js";
 import { goldFake } from "../lib/fakeModels.js";
 import { createAnthropicAgentModel, getAgentModelId } from "../lib/anthropicAgent.js";
 import { formatReport } from "../lib/report.js";
+import { loadEnvFiles } from "../lib/env.js";
 
 // One-command suite runner. Resumable (same results path -> hash-verified skips).
 //   AGENT=fake-gold (default) — offline, free; applies each task's gold patch.
@@ -18,20 +19,11 @@ const AGENT = process.env.AGENT || "fake-gold";
 
 function loadApiKeyIfNeeded() {
   if (process.env.ANTHROPIC_API_KEY) return;
-  for (const file of [
+  loadEnvFiles([
     path.join(MODULE_ROOT, "..", "eval", ".env.local"),
     path.join(MODULE_ROOT, "..", "eval", ".env"),
     path.join(MODULE_ROOT, ".env.local")
-  ]) {
-    if (fs.existsSync(file)) {
-      try {
-        process.loadEnvFile(file);
-      } catch {
-        /* reported by the explicit check below */
-      }
-      if (process.env.ANTHROPIC_API_KEY) return;
-    }
-  }
+  ]);
 }
 
 function buildModel() {

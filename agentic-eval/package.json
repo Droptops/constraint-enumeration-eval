@@ -24,7 +24,7 @@
     "verify": "npm run validate-tasks && npm run prove-suite && npm run prove-resume && npm run prove-judge && npm run prove-parity && npm run prove-introspect && npm test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.12.0"
   },
   "dependencies": {
     "zod": "4.4.2"

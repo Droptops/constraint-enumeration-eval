@@ -31,12 +31,14 @@ function verdicts(task, venv, applied) {
   });
   try {
     if (applied) applyFiles(sandbox, applied.srcDir, applied.files);
+    // Visible tests must pass/fail WITHOUT held-out files present, so run them
+    // before injection. This proves the visible suite has no dependency on (or
+    // leakage from) __heldout__. Only then inject held-out for the real checks.
+    const visible = runPytest(sandbox, task.visible_tests).passed;
     injectHeldout(sandbox, task);
-    return {
-      visible: runPytest(sandbox, task.visible_tests).passed,
-      failToPass: runPytest(sandbox, task.heldout_fail_to_pass).passed,
-      passToPass: runPytest(sandbox, task.heldout_pass_to_pass).passed
-    };
+    const failToPass = runPytest(sandbox, task.heldout_fail_to_pass).passed;
+    const passToPass = runPytest(sandbox, task.heldout_pass_to_pass).passed;
+    return { visible, failToPass, passToPass };
   } finally {
     cleanupSandbox(sandbox);
   }
@@ -61,6 +63,16 @@ async function main() {
     check("ge2_heldout_fail_to_pass", (task.heldout_fail_to_pass || []).length >= 2, problems);
     check("has_heldout_dir", Boolean(task.heldoutDir), problems);
     check("has_gold_dir", Boolean(task.goldDir), problems);
+    // Leakage guards: held-out tests must not ship inside the agent's workspace,
+    // visible targets must not reference the injected __heldout__ mount, and
+    // held-out targets must live under it.
+    check("no_heldout_in_workspace", !fs.existsSync(path.join(task.workspaceDir, "__heldout__")), problems);
+    check("visible_targets_not_heldout", (task.visible_tests || []).every(t => !t.includes("__heldout__")), problems);
+    check(
+      "heldout_targets_namespaced",
+      [...(task.heldout_fail_to_pass || []), ...(task.heldout_pass_to_pass || [])].every(t => t.startsWith("__heldout__/")),
+      problems
+    );
 
     const buggy = verdicts(task, venv);
     check("buggy_visible_fails", buggy.visible === false, problems);

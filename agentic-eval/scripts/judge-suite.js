@@ -7,6 +7,7 @@ import { buildJudgeInput, dualJudge, makeRealJudge } from "../lib/trajectoryJudg
 import { CLEAN_SOLVE_CONSTRAINTS } from "../lib/trajectoryGate.js";
 import { classifyFailure, makeRealIntrospector, aggregateTaxonomy } from "../lib/introspect.js";
 import { getAgentModelId } from "../lib/anthropicAgent.js";
+import { loadEnvFiles } from "../lib/env.js";
 
 // Judge an existing agent results.jsonl with the REAL cross-family judges, add
 // clean-solve and per-constraint rates, run REAL introspection on failures, and
@@ -19,15 +20,7 @@ const TASKS_ROOT = path.join(MODULE_ROOT, "tasks");
 const FAMILIES = ["openai", "google"];
 
 function loadKeysIfNeeded() {
-  for (const file of [path.join(MODULE_ROOT, "..", "eval", ".env.local"), path.join(MODULE_ROOT, "..", "eval", ".env")]) {
-    if (fs.existsSync(file)) {
-      try {
-        process.loadEnvFile(file);
-      } catch {
-        /* reported below */
-      }
-    }
-  }
+  loadEnvFiles([path.join(MODULE_ROOT, "..", "eval", ".env.local"), path.join(MODULE_ROOT, "..", "eval", ".env")]);
 }
 
 function mean(xs) {

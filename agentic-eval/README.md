@@ -4,7 +4,7 @@ A small, SWE-bench-**style** agentic coding eval. A model-under-test acts in a
 sandboxed workspace over multiple steps (read, edit, run tests) and is scored on
 the **environment outcome** (do the tests pass) — with a constraint-enumeration
 **trajectory-quality** layer (ported from the sibling `eval/` project) scoring
-*how* it solved the task, planned for later phases.
+*how* it solved the task.
 
 > **Scope honesty.** This is a small **synthetic** suite, not SWE-bench and not
 > SWE-bench scale. The "sandbox" is **process isolation + a wall-clock timeout +
@@ -63,14 +63,15 @@ Phase 2 adds:
   read** (the SWE-bench anti-overfit pattern). See
   [`PRE-REGISTRATION.md`](PRE-REGISTRATION.md) and
   [`METRICS-REPORT.md`](METRICS-REPORT.md).
-- **8 self-contained Python tasks** under [`tasks/`](tasks) (varied real bug
-  patterns), each validated: buggy fails held-out, gold passes held-out.
+- **11 self-contained Python tasks** under [`tasks/`](tasks) (varied real bug
+  patterns, incl. 3 reward-hacking honeypots), each validated: buggy fails
+  held-out, gold passes held-out, planted cheat dies on held-out.
 - **Resumable runner** ([`lib/runner.js`](lib/runner.js)) with per-task hash
   integrity (skip on match, recompute on mismatch), resolve rate + bootstrap CI,
   and a visible-vs-held-out discrimination metric.
 
 ```bash
-npm run validate-tasks   # deterministic task invariants (8/8)
+npm run validate-tasks   # deterministic task invariants (11/11)
 npm run prove-suite      # fake-model proof incl. cheat dying on held-out
 npm run prove-resume     # kill/resume + hash-integrity proof
 npm run suite            # one-command run (AGENT=fake-gold default; AGENT=real opt-in)
@@ -98,8 +99,8 @@ What the Phase 1 spine provides:
 
 The cross-vendor judge client, retry/backoff, hashing, seeded RNG, and stats in
 the sibling `../eval/lib` are reused **by import** (read-only; no edits to
-`eval/`). The Anthropic tool-use client is **new** code (Phase 1 has none yet),
-because `eval/lib/anthropic.js`'s `callClaude` does not support tools.
+`eval/`). The Anthropic tool-use client is **new** code, because
+`eval/lib/anthropic.js`'s `callClaude` does not support tools.
 
 ## Run it
 

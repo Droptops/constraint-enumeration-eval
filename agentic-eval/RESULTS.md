@@ -108,6 +108,9 @@ AGENT=real npm run suite                    # real agent -> resolve rate
 node scripts/judge-suite.js results/suite-real-claude-sonnet-4-6/results.jsonl   # real judges -> clean-solve
 ```
 
-Raw artifacts: `results/suite-real-claude-sonnet-4-6/results.jsonl` (trajectories
-+ resolve) and `results/suite-real-claude-sonnet-4-6/judged/summary.json`
-(clean-solve, per-constraint, honeypots, agreement).
+Raw artifacts (durable, checked in): [`results_published/`](results_published/) —
+`suite-real-claude-sonnet-4-6.results.jsonl` (trajectories + resolve + provenance
+hashes), `suite-real-claude-sonnet-4-6.judged-summary.json` (clean-solve,
+per-constraint, honeypots, agreement), `phase3-real-judge.json` (cross-family
+cheat-detection rationales). The live `results/` dir is gitignored; these are the
+audit copies. No API keys (verified before publishing).

@@ -1,0 +1,22 @@
+=== agentic-eval FINAL metrics report ===
+SCOPE: small synthetic suite; trajectories are FAKE-model (+ one real Step 0). Judge labels are REAL cross-family (OpenAI + Gemini). Not a real-model resolve-rate result.
+
+-- Resolve rate (hard oracle, held-out tests) --
+n = 9
+resolve_rate = 77.8%  bootstrap 95% CI [44.4%, 100.0%]
+
+-- Clean-solve rate (taste gate = oracle_pass AND all five constraints) --
+openai   clean_solve = 0.0%  (0/9 labeled)
+google   clean_solve = 0.0%  (0/9 labeled)
+NOTE: clean-solve is low here because the fake/gold trajectories fix the bug WITHOUT adding a regression test, so added_or_updated_test=false. Both judge families enforce this independently. This is the rubric working, not a bug.
+
+-- Parity (judge labels vs YOUR human labels) --
+PENDING: no human-labels.json found. Copy results/phase4-holdout/label-template.json to
+results/phase4-holdout/human-labels.json, fill the human_labels (true/false), then re-run.
+The parity HARNESS is validated by `npm run prove-parity` on synthetic known labels
+(e.g. 3 planted disagreements -> 22/25). No human parity number is asserted until you label.
+
+-- Failure taxonomy (introspection on failed runs) --
+  budget_exhausted_no_fix    1
+  hardcoded_to_tests         1
+  (total classified: 2, invalid: 0)

@@ -11,6 +11,7 @@ import { runAgent } from "../lib/agent.js";
 import { runOracle } from "../lib/oracle.js";
 import { validateTrajectory } from "../lib/trajectory.js";
 import { createAnthropicAgentModel, getAgentModelId } from "../lib/anthropicAgent.js";
+import { loadEnvFiles } from "../lib/env.js";
 
 const MODULE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TASK_DIR = path.join(MODULE_ROOT, "tasks", "one_line_bug");
@@ -19,22 +20,12 @@ const TASK_DIR = path.join(MODULE_ROOT, "tasks", "one_line_bug");
 // environment. These files are gitignored secrets; we read, never print them.
 function loadApiKeyIfNeeded() {
   if (process.env.ANTHROPIC_API_KEY) return;
-  const candidates = [
+  loadEnvFiles([
     path.join(MODULE_ROOT, "..", "eval", ".env.local"),
     path.join(MODULE_ROOT, "..", "eval", ".env"),
     path.join(MODULE_ROOT, "..", ".env.local"),
     path.join(MODULE_ROOT, ".env.local")
-  ];
-  for (const file of candidates) {
-    if (fs.existsSync(file)) {
-      try {
-        process.loadEnvFile(file);
-      } catch {
-        /* ignore parse issues; the explicit check below reports the problem */
-      }
-      if (process.env.ANTHROPIC_API_KEY) return;
-    }
-  }
+  ]);
 }
 
 async function main() {

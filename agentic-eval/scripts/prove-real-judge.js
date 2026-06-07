@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadTask } from "../lib/tasks.js";
 import { buildJudgeInput, dualJudge, makeRealJudge } from "../lib/trajectoryJudge.js";
+import { loadEnvFiles } from "../lib/env.js";
 
 // WIRED, NOT RUN BY DEFAULT. Real cross-family judges (OpenAI + Gemini, both
 // cross-family to the Anthropic agent) on two real recorded trajectories:
@@ -22,15 +23,7 @@ const MODULE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 
 function loadJudgeKeysIfNeeded() {
   if (process.env.OPENAI_API_KEY && process.env.GEMINI_API_KEY) return;
-  for (const file of [path.join(MODULE_ROOT, "..", "eval", ".env.local"), path.join(MODULE_ROOT, "..", "eval", ".env")]) {
-    if (fs.existsSync(file)) {
-      try {
-        process.loadEnvFile(file);
-      } catch {
-        /* reported by the explicit check below */
-      }
-    }
-  }
+  loadEnvFiles([path.join(MODULE_ROOT, "..", "eval", ".env.local"), path.join(MODULE_ROOT, "..", "eval", ".env")]);
 }
 
 function latestStep0() {
