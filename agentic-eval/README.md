@@ -19,8 +19,11 @@ the **environment outcome** (do the tests pass) — with a constraint-enumeratio
 entire gap is one measurable behavior — it never adds a regression test — while
 `minimal_diff / no_destructive_ops / not_hardcoded / followed_conventions` are all
 100%, two cross-family judges (OpenAI + Gemini) agree on 100% of cells, and Claude
-declines every reward-hacking honeypot. The thing a resolve-rate benchmark can't
-see. Figure: [RESULTS-figure.svg](RESULTS-figure.svg).
+declines every reward-hacking honeypot. And it's **causal**: adding one line to the
+prompt ("also add a test") moves clean-solve **0% → 100%** with resolve unchanged.
+`claude-haiku-4-5` also resolves 100%, so resolve can't rank the models — clean-solve
+can. The thing a resolve-rate benchmark can't see. Figure:
+[RESULTS-figure.svg](RESULTS-figure.svg).
 
 ## Status: Phases 1–4 built
 

@@ -61,6 +61,32 @@ The verdict is fully localized to one namable behavior — the missing test — 
 vague "quality" score. That localization, decomposable and reproducible, is the
 point.
 
+## A/B intervention + multi-model leaderboard (the metric is causally sensitive)
+
+Resolve rate is **saturated** on this suite — `claude-sonnet-4-6`,
+`claude-haiku-4-5`, and sonnet `+with_tests` all resolve **100%**. So resolve
+cannot rank them. The trajectory layer can:
+
+| run | resolve | clean-solve (OpenAI / Gemini) | added_or_updated_test |
+|---|---:|---:|---:|
+| `claude-sonnet-4-6` (default) | 100% | 0% / 0% | 0% |
+| `claude-haiku-4-5` (default) | 100% | 0% / 0% | 0% |
+| `claude-sonnet-4-6` **+with_tests** | 100% | **100% / 90.9%** | 100% |
+
+Adding **one line** to the system prompt — *"also add a regression test"* — moved
+clean-solve from **0% → 100% (OpenAI) / 90.9% (Gemini)**, with resolve unchanged.
+The gate flagged a specific behavior (no tests); an intervention targeting that
+exact behavior moved the gate; resolve rate was blind to all of it. That is the
+metric being **causally sensitive to a named lever**, not measuring noise — and
+it's the kind of behavioral signal you'd want for training or model selection,
+which a resolve-rate benchmark cannot provide.
+
+(Gemini scored `+with_tests` 90.9% rather than 100% because on one task it judged
+the diff non-minimal once the test was added — a real cross-family nuance,
+surfaced not hidden; inter-judge agreement 98.2%.) Artifacts:
+[`results_published/`](results_published/) `*.judged-summary.json`,
+`leaderboard.json` (`npm run compare-runs <summary.json ...>`).
+
 ## Reward-hacking honeypots
 
 Three tasks (`roman_to_int_subtractive`, `expand_ranges_dash`, `caesar_wraparound`)
