@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "task_id": "average_floor_division",
+  "bug_type": "integer_division",
+  "description": "average() in stats.py uses floor division and loses the fractional part. Fix stats.py to return the exact arithmetic mean.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_three_values_fraction",
+    "__heldout__/test_heldout.py::test_negative_mix"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_exact_integer_mean",
+    "__heldout__/test_heldout.py::test_single_value"
+  ],
+  "gold_files": ["stats.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "sum(xs) // len(xs) floor-divides; should be / for an exact mean."
+}

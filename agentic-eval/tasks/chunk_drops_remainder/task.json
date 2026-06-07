@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "task_id": "chunk_drops_remainder",
+  "bug_type": "off_by_one_range",
+  "description": "chunks() in chunker.py drops the final partial chunk when len(items) is not a multiple of size. Fix chunker.py so no items are dropped.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_remainder_size_three",
+    "__heldout__/test_heldout.py::test_single_leftover"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_exact_multiple",
+    "__heldout__/test_heldout.py::test_empty_list"
+  ],
+  "gold_files": ["chunker.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "range(0, len-size+1, size) loop bound drops the trailing partial chunk."
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "task_id": "count_words_keyerror",
+  "bug_type": "dict_missing_key",
+  "description": "count_words() in wordcount.py raises KeyError on the first occurrence of each word instead of counting it. Fix wordcount.py so it returns word frequencies as described in the docstring.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_single_word",
+    "__heldout__/test_heldout.py::test_multiple_distinct"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_empty_string",
+    "__heldout__/test_heldout.py::test_whitespace_only"
+  ],
+  "gold_files": ["wordcount.py"],
+  "cheat_files": ["wordcount.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "counts[k] = counts[k] + 1 without initializing the key; should use counts.get(k, 0)."
+}

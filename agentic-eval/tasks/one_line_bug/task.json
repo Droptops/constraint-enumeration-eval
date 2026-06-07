@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "task_id": "one_line_bug",
+  "description": "The add(a, b) function in mathutils.py is supposed to return the sum of its two arguments, but it returns the wrong value. Fix mathutils.py so the tests pass.",
+  "language": "python",
+  "test_runner": "pytest",
+  "fail_to_pass": ["tests/test_mathutils.py::test_add_positive"],
+  "pass_to_pass": ["tests/test_mathutils.py::test_add_zero"],
+  "gold_patch_path": "gold/fix.diff",
+  "source_pattern": "Operator typo: returns a - b instead of a + b. A common one-character arithmetic bug.",
+  "step_budget": 15,
+  "test_timeout_seconds": 30
+}

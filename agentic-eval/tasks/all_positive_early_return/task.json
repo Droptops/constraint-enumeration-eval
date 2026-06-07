@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "task_id": "all_positive_early_return",
+  "bug_type": "early_return_in_loop",
+  "description": "all_positive() in predicates.py returns True as soon as it finds one positive number (it behaves like any_positive) and returns the wrong answer for the empty sequence. Fix predicates.py to match the docstring.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_trailing_negative",
+    "__heldout__/test_heldout.py::test_leading_zero",
+    "__heldout__/test_heldout.py::test_empty_true"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_all_positive_true",
+    "__heldout__/test_heldout.py::test_all_negative_false"
+  ],
+  "gold_files": ["predicates.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "Returning True inside the loop on the first match turns an all-check into an any-check; also mishandles the empty case."
+}
