@@ -18,6 +18,7 @@
     "judge-suite": "node scripts/judge-suite.js",
     "labels:init": "node scripts/init-labels.js",
     "report-final": "node scripts/report-final.js",
+    "report-variants": "node scripts/report-variants.js",
     "suite": "node scripts/run-suite.js",
     "report": "node scripts/report.js",
     "test": "node --test test/*.test.js",

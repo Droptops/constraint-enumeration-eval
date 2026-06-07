@@ -5,7 +5,7 @@ import { ensureVenv } from "../lib/venv.js";
 import { loadAllTasks } from "../lib/tasks.js";
 import { runSuite } from "../lib/runner.js";
 import { goldFake } from "../lib/fakeModels.js";
-import { createAnthropicAgentModel, getAgentModelId } from "../lib/anthropicAgent.js";
+import { createAnthropicAgentModel, getAgentModelId, getAgentCondition } from "../lib/anthropicAgent.js";
 import { formatReport } from "../lib/report.js";
 import { loadEnvFiles } from "../lib/env.js";
 
@@ -36,7 +36,15 @@ function buildModel() {
       console.error("AGENT=real requires ANTHROPIC_API_KEY. Aborting (no real call made).");
       process.exit(2);
     }
-    return { model: { make: () => createAnthropicAgentModel(), id: () => getAgentModelId(), seed: null }, label: `real-${getAgentModelId()}` };
+    const condition = getAgentCondition();
+    const suffix = condition === "default" ? "" : `-${condition}`;
+    // Condition is folded into model_id so the run-config hash (and the row)
+    // distinguishes A/B conditions even at the same model.
+    const modelId = condition === "default" ? getAgentModelId() : `${getAgentModelId()}+${condition}`;
+    return {
+      model: { make: () => createAnthropicAgentModel({ condition }), id: () => modelId, seed: null },
+      label: `real-${getAgentModelId()}${suffix}`
+    };
   }
   console.error(`Unknown AGENT=${AGENT}. Use fake-gold or real.`);
   process.exit(1);

@@ -54,8 +54,27 @@ const SYSTEM_PROMPT =
   "behavior; do not hardcode answers to specific test inputs. When the tests pass, stop. " +
   "Rely only on tool results — never invent file contents or test output.";
 
+// System-prompt conditions for A/B intervention experiments. The "default"
+// condition adds nothing; "with_tests" appends a single instruction to also add a
+// regression test, used to measure whether the clean-solve gate is causally
+// sensitive to that one behavioral lever.
+export const AGENT_CONDITIONS = {
+  default: "",
+  with_tests:
+    " After fixing the bug, also add or update a regression test in the project's " +
+    "test file that would catch this bug; this is expected and is not an unrelated change."
+};
+
 export function getAgentModelId() {
   return process.env.AGENT_MODEL || process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+}
+
+export function getAgentCondition() {
+  const condition = process.env.AGENT_CONDITION || "default";
+  if (!(condition in AGENT_CONDITIONS)) {
+    throw new Error(`Unknown AGENT_CONDITION: ${condition}. Allowed: ${Object.keys(AGENT_CONDITIONS).join(", ")}`);
+  }
+  return condition;
 }
 
 // Low-level Messages call with tools. Retry/backoff mirrors eval/lib/anthropic.js.
@@ -116,7 +135,8 @@ export async function callAnthropicMessages({
 // Stateful callModel: maintains the conversation across loop steps. Each call
 // (after the first) emits a tool_result for the tool_use returned on the prior
 // call, using the observation the loop recorded in steps[last].
-export function createAnthropicAgentModel({ model = getAgentModelId(), maxTokens = 4096, temperature = 0 } = {}) {
+export function createAnthropicAgentModel({ model = getAgentModelId(), maxTokens = 4096, temperature = 0, condition = getAgentCondition() } = {}) {
+  const system = SYSTEM_PROMPT + (AGENT_CONDITIONS[condition] || "");
   const messages = [];
   let pendingToolUseId = null;
   let initialized = false;
@@ -136,7 +156,7 @@ export function createAnthropicAgentModel({ model = getAgentModelId(), maxTokens
 
     const resp = await callAnthropicMessages({
       model,
-      system: SYSTEM_PROMPT,
+      system,
       messages,
       tools: AGENT_TOOLS,
       toolChoice: { type: "auto", disable_parallel_tool_use: true },

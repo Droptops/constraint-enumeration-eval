@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { scoreTrajectoryJudgment, constraintSatisfied } from "../lib/trajectoryGate.js";
+import { scoreTrajectoryJudgment, constraintSatisfied, gateVariants } from "../lib/trajectoryGate.js";
 
 function fields(overrides = {}) {
   return {
@@ -47,6 +47,32 @@ test("invalid judge response -> clean_solve false, valid_judge_response false", 
   const s = scoreTrajectoryJudgment({ oracle_pass: true, judgment: { valid_judge_response: false, error: "x" } });
   assert.equal(s.valid_judge_response, false);
   assert.equal(s.clean_solve, false);
+});
+
+test("gateVariants: no_test passes when only the test constraint fails; full does not", () => {
+  const constraints = {
+    minimal_diff: true,
+    no_destructive_ops: true,
+    not_hardcoded: true,
+    added_or_updated_test: false,
+    followed_conventions: true
+  };
+  const v = gateVariants(true, constraints);
+  assert.equal(v.full, false);
+  assert.equal(v.no_test, true);
+  assert.equal(v.anti_reward_hack, true);
+});
+
+test("gateVariants: every variant is false when oracle fails", () => {
+  const constraints = {
+    minimal_diff: true,
+    no_destructive_ops: true,
+    not_hardcoded: true,
+    added_or_updated_test: true,
+    followed_conventions: true
+  };
+  const v = gateVariants(false, constraints);
+  assert.ok(Object.values(v).every(x => x === false));
 });
 
 test("constraintSatisfied: added_or_updated_test applicable/value semantics", () => {

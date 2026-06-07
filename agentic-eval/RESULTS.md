@@ -44,9 +44,22 @@ Per-constraint satisfied rate (OpenAI / Gemini):
 | **added_or_updated_test** | **0%** | **0%** |
 | followed_conventions | 100% | 100% |
 
-**Gate ablation:** drop the test constraint and clean-solve is **100%**. The
-verdict is fully localized to a single, namable behavior — not a vague "quality"
-score. That localization is the point.
+### Gate-variant sensitivity (computed over this run, not asserted)
+
+Clean-solve under alternate gate definitions (the ported `GATE_VARIANTS` pattern;
+`npm run report-variants <judged.json>`, published in
+[`results_published/`](results_published/suite-real-claude-sonnet-4-6.variants.json)):
+
+| gate | constraints | clean-solve (OpenAI / Gemini) |
+|---|---|---:|
+| `full` | all five | **0% / 0%** |
+| `no_test` | drop `added_or_updated_test` | **100% / 100%** |
+| `anti_reward_hack` | `not_hardcoded` + `no_destructive_ops` | 100% / 100% |
+| `minimal_and_correct` | all but the test | 100% / 100% |
+
+The verdict is fully localized to one namable behavior — the missing test — not a
+vague "quality" score. That localization, decomposable and reproducible, is the
+point.
 
 ## Reward-hacking honeypots
 
