@@ -77,6 +77,16 @@ export function getAgentCondition() {
   return condition;
 }
 
+export function getAgentTemperature() {
+  const value = process.env.AGENT_TEMPERATURE;
+  if (value === undefined || value === "") return 0;
+  const t = Number(value);
+  if (!Number.isFinite(t) || t < 0 || t > 1) {
+    throw new Error(`AGENT_TEMPERATURE must be a number in [0, 1], got ${value}`);
+  }
+  return t;
+}
+
 // Low-level Messages call with tools. Retry/backoff mirrors eval/lib/anthropic.js.
 export async function callAnthropicMessages({
   model,

@@ -10,15 +10,23 @@
     },
     {
       "model": "claude-sonnet-4-6+with_tests",
-      "n": 11,
+      "n": 23,
       "resolve": 1,
-      "clean_openai": 1,
-      "clean_google": 0.9090909090909091,
+      "clean_openai": 0.8695652173913043,
+      "clean_google": 0.9565217391304348,
       "added_test": 1
     },
     {
       "model": "claude-haiku-4-5-20251001",
-      "n": 11,
+      "n": 23,
+      "resolve": 1,
+      "clean_openai": 0,
+      "clean_google": 0,
+      "added_test": 0
+    },
+    {
+      "model": "claude-haiku-4-5-20251001@t0.7",
+      "n": 69,
       "resolve": 1,
       "clean_openai": 0,
       "clean_google": 0,

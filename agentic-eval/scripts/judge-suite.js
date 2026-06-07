@@ -41,8 +41,9 @@ async function main() {
   const haveAnthropic = Boolean(process.env.ANTHROPIC_API_KEY);
 
   const rows = fs.readFileSync(resultsPath, "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l));
-  const byTask = new Map(rows.map(r => [r.task_id, r]));
-  const items = [...byTask.values()].sort((a, b) => (a.task_id < b.task_id ? -1 : 1));
+  const keyOf = r => `${r.task_id}#${r.trial ?? 0}`;
+  const byKey = new Map(rows.map(r => [keyOf(r), r]));
+  const items = [...byKey.values()].sort((a, b) => (keyOf(a) < keyOf(b) ? -1 : 1));
 
   const judges = FAMILIES.map(family => ({ family, callJudge: makeRealJudge({ family }) }));
   const judged = [];
