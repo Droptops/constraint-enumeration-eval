@@ -53,12 +53,13 @@ npm run verify   # validate-tasks + suite + resume + judge + parity + introspect
   ([`lib/parity.js`](lib/parity.js)), printed not asserted; failure taxonomy via
   agent self-introspection ([`lib/introspect.js`](lib/introspect.js)).
   `npm run prove-parity` / `npm run prove-introspect` (offline). The
-  human-parity number is **PENDING your labels**:
+  human-parity number is **PENDING your labels** — a labeling kit on the real
+  23-task run is staged in `results_published/parity/` (see
+  [`PARITY.md`](PARITY.md)):
   ```bash
-  npm run build-holdout   # real judge labels + real introspection (needs keys)
-  npm run labels:init     # copy label-template.json -> human-labels.json
-  # ...fill human_labels (true/false) in human-labels.json...
-  npm run report-final    # resolve rate | clean-solve rate | parity | taxonomy
+  cp results_published/parity/parity-template.json results_published/parity/parity-human-labels.json
+  # ...fill each human_labels (true/false) per PARITY.md...
+  npm run report-parity results_published/parity/parity-judge-labels.json results_published/parity/parity-human-labels.json
   ```
 
 Phase 2 adds:

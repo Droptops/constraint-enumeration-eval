@@ -20,6 +20,8 @@
     "report-final": "node scripts/report-final.js",
     "report-variants": "node scripts/report-variants.js",
     "compare-runs": "node scripts/compare-runs.js",
+    "make-parity-template": "node scripts/make-parity-template.js",
+    "report-parity": "node scripts/report-parity.js",
     "suite": "node scripts/run-suite.js",
     "report": "node scripts/report.js",
     "test": "node --test test/*.test.js",

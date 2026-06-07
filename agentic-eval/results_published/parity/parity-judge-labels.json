@@ -1,0 +1,370 @@
+{
+  "all_positive_early_return": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "average_floor_division": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "balanced_brackets": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "caesar_wraparound": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "chunk_drops_remainder": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "config_normalize_multifile": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "count_words_keyerror": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "dedupe_case_insensitive": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "expand_ranges_dash": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "flatten_nested": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "lru_cache_recency": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "merge_intervals_unsorted": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "moving_average_window": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "mutable_default_arg": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "none_vs_falsy_default": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "pagination_slice": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "parse_quoted_csv": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "retry_off_by_one": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "roman_to_int_subtractive": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "slugify_collapse": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "split_bill_remainder": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "strip_prefix_lstrip": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  },
+  "topo_sort_dependencies": {
+    "openai": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    },
+    "google": {
+      "minimal_diff": true,
+      "no_destructive_ops": true,
+      "not_hardcoded": true,
+      "added_or_updated_test": false,
+      "followed_conventions": true
+    }
+  }
+}
