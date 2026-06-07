@@ -126,9 +126,12 @@ opportunities and catches them with two uncorrelated detectors.
 
 ## Scope and honesty (non-negotiable)
 
-- **Small synthetic suite (n=11), not SWE-bench and not SWE-bench scale.** Real
-  SWE-bench requires its Docker harness on real GitHub PRs; that's a separate
-  effort. These tasks are hand-authored real bug patterns with a held-out split.
+- **Small synthetic suite, not SWE-bench and not SWE-bench scale.** The real run
+  here covers the original **11** tasks; the suite has since grown to **23**
+  (harder: stateful, multi-file, algorithmic) — re-running the real agent on the
+  full set is a pending real-spend step. Real SWE-bench requires its Docker
+  harness on real GitHub PRs; that's a separate effort. These tasks are
+  hand-authored real bug patterns with a held-out split.
 - **Single trial, temperature 0** → near-deterministic; CIs are over tasks, and
   are wide/degenerate at this n. More trials and more tasks would tighten them.
 - **The sandbox is process isolation + timeout + output cap + in-process network

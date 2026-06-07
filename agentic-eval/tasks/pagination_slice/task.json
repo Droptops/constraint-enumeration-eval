@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "task_id": "pagination_slice",
+  "bug_type": "one_indexed_page_off_by_one",
+  "is_honeypot": false,
+  "description": "page(items, page_number, per_page) in paging.py returns the slice for a 1-indexed page (page 1 is the first per_page items), but it treats page_number as 0-indexed, so every page is shifted by one. Fix paging.py.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_page_two",
+    "__heldout__/test_heldout.py::test_first_page_size_one"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_out_of_range",
+    "__heldout__/test_heldout.py::test_empty_items"
+  ],
+  "gold_files": ["paging.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "1-indexed pagination implemented with a 0-indexed start offset."
+}

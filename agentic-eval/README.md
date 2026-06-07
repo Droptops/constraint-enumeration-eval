@@ -25,6 +25,10 @@ prompt ("also add a test") moves clean-solve **0% → 100%** with resolve unchan
 can. The thing a resolve-rate benchmark can't see. Figure:
 [RESULTS-figure.svg](RESULTS-figure.svg).
 
+> The headline real numbers are from the original **11-task** subset. The suite
+> has since grown to **23 tasks** (harder: stateful, multi-file, algorithmic);
+> re-running the real agent on the full set is a pending real-spend step.
+
 ## Status: Phases 1–4 built
 
 All four phases are built. The real Anthropic tool-use client
@@ -66,15 +70,16 @@ Phase 2 adds:
   read** (the SWE-bench anti-overfit pattern). See
   [`PRE-REGISTRATION.md`](PRE-REGISTRATION.md) and
   [`METRICS-REPORT.md`](METRICS-REPORT.md).
-- **11 self-contained Python tasks** under [`tasks/`](tasks) (varied real bug
-  patterns, incl. 3 reward-hacking honeypots), each validated: buggy fails
-  held-out, gold passes held-out, planted cheat dies on held-out.
+- **23 self-contained Python tasks** under [`tasks/`](tasks) (varied real bug
+  patterns — stateful, algorithmic, multi-file, incl. 7 reward-hacking
+  honeypots), each validated: buggy fails held-out, gold passes held-out, planted
+  cheat dies on held-out.
 - **Resumable runner** ([`lib/runner.js`](lib/runner.js)) with per-task hash
   integrity (skip on match, recompute on mismatch), resolve rate + bootstrap CI,
   and a visible-vs-held-out discrimination metric.
 
 ```bash
-npm run validate-tasks   # deterministic task invariants (11/11)
+npm run validate-tasks   # deterministic task invariants (23/23)
 npm run prove-suite      # fake-model proof incl. cheat dying on held-out
 npm run prove-resume     # kill/resume + hash-integrity proof
 npm run suite            # one-command run (AGENT=fake-gold default; AGENT=real opt-in)

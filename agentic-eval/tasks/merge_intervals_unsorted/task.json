@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "task_id": "merge_intervals_unsorted",
+  "bug_type": "missing_sort_before_merge",
+  "is_honeypot": false,
+  "description": "merge() in intervals.py merges overlapping intervals but assumes the input is already sorted by start, so it returns wrong results on unsorted input. Fix intervals.py to handle intervals in any order.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_unsorted_simple",
+    "__heldout__/test_heldout.py::test_unsorted_overlap"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_already_sorted_disjoint",
+    "__heldout__/test_heldout.py::test_single"
+  ],
+  "gold_files": ["intervals.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "Interval merge that forgot to sort by start before merging."
+}

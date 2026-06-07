@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "task_id": "lru_cache_recency",
+  "bug_type": "lru_get_no_recency_update",
+  "is_honeypot": false,
+  "description": "LRUCache in lru.py evicts the least-recently-used entry when over capacity, but get() does not count as a use, so a recently-read key can be wrongly evicted. Fix lru.py so get() refreshes recency.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_get_protects_from_eviction",
+    "__heldout__/test_heldout.py::test_interleaved_access"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_within_capacity",
+    "__heldout__/test_heldout.py::test_update_value"
+  ],
+  "gold_files": ["lru.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "Classic LRU bug: get() reads without updating recency, so eviction order is wrong."
+}

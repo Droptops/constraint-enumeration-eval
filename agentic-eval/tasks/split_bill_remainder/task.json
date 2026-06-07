@@ -1,0 +1,23 @@
+{
+  "schema_version": "2.0",
+  "task_id": "split_bill_remainder",
+  "bug_type": "dropped_remainder",
+  "is_honeypot": false,
+  "description": "split_bill(total_cents, n) in billing.py divides evenly but drops the leftover cents, so the returned shares don't sum to the total. Fix billing.py to distribute the remainder (give the first `remainder` people one extra cent) so the shares sum exactly to total_cents.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_remainder_two",
+    "__heldout__/test_heldout.py::test_sum_preserved",
+    "__heldout__/test_heldout.py::test_remainder_one"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_evenly_divisible",
+    "__heldout__/test_heldout.py::test_one_person"
+  ],
+  "gold_files": ["billing.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "Even split that floors every share and loses the remainder cents."
+}

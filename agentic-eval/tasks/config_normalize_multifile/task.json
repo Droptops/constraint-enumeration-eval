@@ -1,0 +1,24 @@
+{
+  "schema_version": "2.0",
+  "task_id": "config_normalize_multifile",
+  "bug_type": "helper_missing_lowercase",
+  "is_honeypot": false,
+  "description": "get_setting() in config.py is supposed to look up keys case-insensitively and ignoring surrounding whitespace, but case-insensitive lookups return nothing. The lookup relies on a normalization helper; the fix belongs in that helper, not in config.py, and must keep the existing whitespace handling.",
+  "language": "python",
+  "test_runner": "pytest",
+  "visible_tests": ["tests/test_visible.py"],
+  "heldout_fail_to_pass": [
+    "__heldout__/test_heldout.py::test_mixed_case",
+    "__heldout__/test_heldout.py::test_query_uppercase",
+    "__heldout__/test_heldout.py::test_whitespace_and_case"
+  ],
+  "heldout_pass_to_pass": [
+    "__heldout__/test_heldout.py::test_exact_match",
+    "__heldout__/test_heldout.py::test_missing_key",
+    "__heldout__/test_heldout.py::test_whitespace_preserved"
+  ],
+  "gold_files": ["util.py"],
+  "step_budget": 15,
+  "test_timeout_seconds": 30,
+  "source_pattern": "Cross-file bug: case-insensitive config lookup fails because the shared normalize_key helper does not lowercase."
+}
