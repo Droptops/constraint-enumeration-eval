@@ -132,23 +132,25 @@ opportunities and catches them with two uncorrelated detectors.
   agreement here is corroboration across vendors, not a single model grading
   itself.
 - **Taste-layer trust is earned, not claimed.** The judge-vs-human parity harness
-  is built and validated on synthetic labels, but the **human parity number is
-  PENDING** real labels (`npm run labels:init`). Until then, clean-solve is a
-  measured judge signal, not a human-validated verdict.
+  is validated on synthetic labels, and a labeling kit on the real 23-task run is
+  staged (`results_published/parity/`, see [PARITY.md](PARITY.md)); the **human
+  parity number is PENDING** those labels. Until then, clean-solve is a
+  cross-validated judge signal, not a human-validated verdict.
 
 ## Scope and honesty (non-negotiable)
 
-- **Small synthetic suite (n=23), not SWE-bench and not SWE-bench scale.** The
-  headline run covers all 23 tasks (stateful, multi-file, algorithmic, honeypots);
-  the A/B (`with_tests`) and the weaker-model (haiku) comparisons were run on the
-  original 11-task subset. Real SWE-bench requires its Docker harness on real
-  GitHub PRs; that's a separate effort. These tasks are hand-authored real bug
-  patterns with a held-out split.
+- **Small synthetic suite (n=23), not SWE-bench and not SWE-bench scale.** Every
+  leaderboard run — sonnet default, sonnet `+with_tests`, and haiku — is on the
+  full 23 tasks; the trials run adds 69 samples (haiku ×3 at temp 0.7). Real
+  SWE-bench requires its Docker harness on real GitHub PRs; that's a separate
+  effort. These tasks are hand-authored real bug patterns with a held-out split.
 - **A frontier model resolves 100% even on the harder set** — so resolve rate does
   not discriminate here; that takes genuine SWE-bench-scale ambiguity/size. The
   discriminating signal on this suite is entirely the trajectory layer.
-- **Single trial, temperature 0** → near-deterministic; CIs are over tasks, and
-  are wide/degenerate at this n. More trials and more tasks would tighten them.
+- **The headline run is single-trial, temperature 0** → near-deterministic; its CI
+  is degenerate because resolve is 100% on every task. A temp-0.7 ×3 trials run
+  (haiku, 69 samples) left the CI at [100%, 100%] too — the behavior is robust,
+  not noisy, so trials don't widen it.
 - **The sandbox is process isolation + timeout + output cap + in-process network
   denial**, not a kernel container. Tasks are author-trusted.
 - `resolve=100%` and `clean_solve=0%` are this suite, this model, this run — a
@@ -159,7 +161,7 @@ opportunities and catches them with two uncorrelated detectors.
 ```bash
 cd agentic-eval
 npm run verify                              # full offline gate (tasks, oracle, judge, parity, introspect, 31 tests)
-npm run validate-tasks                      # 11/11 task invariants incl. honeypot cheat-resistance
+npm run validate-tasks                      # 23/23 task invariants incl. honeypot cheat-resistance
 # real run (spends API budget; keys via env):
 AGENT=real npm run suite                    # real agent -> resolve rate
 node scripts/judge-suite.js results/suite-real-claude-sonnet-4-6/results.jsonl   # real judges -> clean-solve
