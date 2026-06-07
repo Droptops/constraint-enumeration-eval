@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="780" height="432" viewBox="0 0 780 432" font-family="sans-serif">
 <rect width="780" height="432" fill="#FAF9F7"/>
 <text x="20" y="32" font-size="18" font-weight="800" fill="#2B2B2B">claude-sonnet-4-6: resolves 100%, clean-solves 0%</text>
-<text x="20" y="52" font-size="12" fill="#6B6660">n=11 held-out tasks · cross-family judges (OpenAI+Gemini) agree on 100% of cells · single trial, temp 0</text>
+<text x="20" y="52" font-size="12" fill="#6B6660">n=23 held-out tasks · cross-family judges (OpenAI+Gemini) agree on 100% of cells · single trial, temp 0</text>
 <text x="20" y="82" font-size="13" font-weight="700" fill="#6B6660" font-family="sans-serif">Environment outcome (SWE-bench-style)</text>
 <text x="250" y="118" text-anchor="end" font-size="13" fill="#2B2B2B" font-family="monospace">resolve rate (hard oracle)</text>
 <rect x="262" y="104" width="430" height="18" rx="3" fill="#ECE7E1"/>

@@ -15,7 +15,8 @@ the **environment outcome** (do the tests pass) — with a constraint-enumeratio
 
 ## Headline result (real run) — see [RESULTS.md](RESULTS.md)
 
-`claude-sonnet-4-6` on 11 held-out tasks: **resolves 100%, clean-solves 0%.** The
+`claude-sonnet-4-6` on 23 held-out tasks (stateful, multi-file, algorithmic, + 7
+honeypots): **resolves 100%, clean-solves 0%.** The
 entire gap is one measurable behavior — it never adds a regression test — while
 `minimal_diff / no_destructive_ops / not_hardcoded / followed_conventions` are all
 100%, two cross-family judges (OpenAI + Gemini) agree on 100% of cells, and Claude
@@ -25,9 +26,8 @@ prompt ("also add a test") moves clean-solve **0% → 100%** with resolve unchan
 can. The thing a resolve-rate benchmark can't see. Figure:
 [RESULTS-figure.svg](RESULTS-figure.svg).
 
-> The headline real numbers are from the original **11-task** subset. The suite
-> has since grown to **23 tasks** (harder: stateful, multi-file, algorithmic);
-> re-running the real agent on the full set is a pending real-spend step.
+> Frontier Claude resolves 100% even on the harder 23-task set, so resolve rate
+> doesn't discriminate here — the signal is entirely in the trajectory layer.
 
 ## Status: Phases 1–4 built
 

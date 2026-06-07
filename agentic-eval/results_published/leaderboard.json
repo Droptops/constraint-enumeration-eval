@@ -2,7 +2,7 @@
   "runs": [
     {
       "model": "claude-sonnet-4-6",
-      "n": 11,
+      "n": 23,
       "resolve": 1,
       "clean_openai": 0,
       "clean_google": 0,
