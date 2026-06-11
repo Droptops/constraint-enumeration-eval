@@ -1,8 +1,8 @@
 export function shouldOmitAnthropicSamplingParams(model) {
   const normalized = String(model || "").toLowerCase();
-  // Claude Opus 4.7 rejects explicit sampling parameters. Revisit this map
-  // whenever Anthropic introduces new models with similar restrictions.
-  return normalized.startsWith("claude-opus-4-7");
+  // Claude Opus 4.7 and Fable 5 reject explicit sampling parameters. Revisit
+  // this map whenever Anthropic introduces new models with similar restrictions.
+  return normalized.startsWith("claude-opus-4-7") || normalized.startsWith("claude-fable-5");
 }
 
 export function shouldOmitOpenAISamplingParams(model) {
