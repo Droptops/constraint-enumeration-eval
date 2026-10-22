@@ -1,3 +1,5 @@
+import { rejectCompressedBody } from "../../lib/rejectCompressedBody.js";
+
 import { requireAuth } from "../../lib/auth.js";
 import { getAnswerModel, getAnswerTemperature, getEvalConditions, getJudgeModel, getJudgeTemperature } from "../../lib/config.js";
 import { loadCaseById } from "../../lib/loadCases.js";
@@ -7,6 +9,7 @@ import { scoreJudgment } from "../../lib/score.js";
 import { textStats } from "../../lib/runBatch.js";
 
 export default async function handler(req, res) {
+  if (rejectCompressedBody(req, res)) return;
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });

@@ -1,3 +1,5 @@
+import { rejectCompressedBody } from "../../lib/rejectCompressedBody.js";
+
 import path from "path";
 
 import { requireAuth } from "../../lib/auth.js";
@@ -6,6 +8,7 @@ import { runBatch } from "../../lib/runBatch.js";
 import { makeTimestampRunId, validateRunId } from "../../lib/runId.js";
 
 export default async function handler(req, res) {
+  if (rejectCompressedBody(req, res)) return;
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
