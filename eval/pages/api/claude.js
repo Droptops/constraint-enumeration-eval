@@ -7,6 +7,8 @@
 // - Rate-limits per IP (in-memory, single-instance only).
 // - Pinned to claude-sonnet-4-6.
 
+import { rejectCompressedBody } from "../../lib/rejectCompressedBody.js";
+
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL_ID = "claude-sonnet-4-6";
@@ -103,6 +105,7 @@ function validateBody(body) {
 }
 
 export default async function handler(req, res) {
+  if (rejectCompressedBody(req, res)) return;
   if (req.method !== "POST") {
     return res.status(405).json({ error: "method not allowed" });
   }

@@ -40,6 +40,6 @@
     "eslint-config-next": "16.2.4"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.23.4"
   }
 }

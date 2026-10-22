@@ -1,6 +1,9 @@
+import { rejectCompressedBody } from "../../lib/rejectCompressedBody.js";
+
 import { loadAllCases } from "../../lib/loadCases.js";
 
 export default function handler(req, res) {
+  if (rejectCompressedBody(req, res)) return;
   try {
     if (req.method !== "GET") {
       return res.status(405).json({ error: "Method not allowed" });
