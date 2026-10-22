@@ -21,10 +21,11 @@
     "suite": "node scripts/run-suite.js",
     "report": "node scripts/report.js",
     "test": "node --test test/*.test.js",
-    "verify": "npm run validate-tasks && npm run prove-suite && npm run prove-resume && npm run prove-judge && npm run prove-parity && npm run prove-introspect && npm test"
+    "verify": "npm run validate-tasks && npm run prove-suite && npm run prove-resume && npm run prove-judge && npm run prove-parity && npm run prove-introspect && npm test",
+    "check:node": "node ../eval/scripts/check-node-version.js"
   },
   "engines": {
-    "node": ">=22.23.4"
+    "node": "^22.23.4 || ^24.22.1 || ^26.12.1"
   },
   "dependencies": {
     "zod": "4.4.2"

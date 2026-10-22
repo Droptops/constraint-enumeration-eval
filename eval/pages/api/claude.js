@@ -1,3 +1,4 @@
+import { fetchWithPatchedNode as fetch } from "../../lib/nodeRuntime.js";
 // pages/api/claude.js
 //
 // Server-side proxy to the Anthropic Messages API.

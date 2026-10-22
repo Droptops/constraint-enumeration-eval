@@ -1,10 +1,10 @@
 // lib/rejectCompressedBody.js
 //
 // Defense-in-depth for CVE-2026-111497 (Node.js Brotli decoder OOB write, RCE).
-// The real fix is running Node >= 22.23.4 / 24.22.1 / 26.12.1 — see package.json
-// "engines" and .nvmrc. This guard additionally refuses any request that
-// arrives with a compressed body, so no decoder is ever fed attacker-controlled
-// bytes even if a future body parser starts transparently decompressing.
+// The fix is a patched Node release on its supported major — see nodeRuntime.js.
+// This handler-level check rejects compressed bodies that reach the route.
+// A framework or proxy may parse the body BEFORE this handler runs; this check
+// cannot protect an earlier decoder or outbound fetch response decompression.
 //
 // Every /api route accepts only plain JSON. Rejecting Content-Encoding costs nothing.
 

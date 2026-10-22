@@ -1,3 +1,4 @@
+import { fetchWithPatchedNode as fetch } from "../lib/nodeRuntime.js";
 import {
   getAnswerModel,
   getAnswerProvider,
