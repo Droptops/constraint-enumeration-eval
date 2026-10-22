@@ -4,20 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-skill.js",
-    "prebuild": "node scripts/copy-skill.js",
+    "predev": "npm run check:node && node scripts/copy-skill.js",
+    "prebuild": "npm run check:node && node scripts/copy-skill.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "smoke": "node scripts/copy-skill.js && node scripts/smoke-test.js",
     "lint": "next lint",
     "check:esm": "node scripts/check-esm.js",
-    "prestart": "node scripts/copy-skill.js",
+    "prestart": "npm run check:node && node scripts/copy-skill.js",
     "rejudge": "node scripts/copy-skill.js && node scripts/rejudge-existing.js",
     "check:models": "node scripts/check-model-access.js",
     "check:cases": "node -e \"import('./lib/loadCases.js').then(m => console.log(m.loadAllCases().length))\"",
     "test": "node --test test/*.test.js",
-    "ci": "npm run check:cases && npm run check:esm && npm test",
+    "ci": "npm run check:node && npm run check:cases && npm run check:esm && npm test",
     "make:large-holdout-prompt": "node scripts/make-large-holdout-prompt.js",
     "export:human-review": "node scripts/export-human-review.js",
     "report": "node scripts/report-summary.js",
@@ -27,7 +27,8 @@
     "report:frontier": "node scripts/frontier-report.js",
     "eval:frontier-dry-run": "DRY_RUN=true node scripts/run-frontier-matrix.js",
     "check:holdout": "CASE_DIR=cases_holdout npm run check:cases",
-    "check:large-holdout": "CASE_DIR=cases_holdout_large npm run check:cases"
+    "check:large-holdout": "CASE_DIR=cases_holdout_large npm run check:cases",
+    "check:node": "node scripts/check-node-version.js"
   },
   "dependencies": {
     "next": "16.2.4",
@@ -40,6 +41,6 @@
     "eslint-config-next": "16.2.4"
   },
   "engines": {
-    "node": ">=22.23.4"
+    "node": "^22.23.4 || ^24.22.1 || ^26.12.1"
   }
 }

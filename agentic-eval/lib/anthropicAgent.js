@@ -1,3 +1,4 @@
+import { fetchWithPatchedNode as fetch } from "../../eval/lib/nodeRuntime.js";
 import fs from "node:fs";
 import path from "node:path";
 import {

@@ -1,3 +1,4 @@
+import { fetchWithPatchedNode as fetch } from "./nodeRuntime.js";
 import { callClaude } from "./anthropic.js";
 import {
   ApiHttpError,
